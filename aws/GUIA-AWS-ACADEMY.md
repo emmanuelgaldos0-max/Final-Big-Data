@@ -168,10 +168,7 @@ Esto instala Java 11, Python 3.10 (deadsnakes), descarga Flink 1.19.1 y Spark 3.
 Kafka y crea el entorno Python. Tarda varios minutos (descarga ~600 MB). Es **idempotente**:
 si algo falla, vuelve a correrlo.
 
-Al terminar, **cierra y reabre el SSH** (para que `docker` funcione sin `sudo`), o corre:
-```bash
-newgrp docker
-```
+Al terminar, verás `LISTO. Instalación completa` (sin Docker, todo nativo).
 
 > Puedes correr `setup.sh` en las 3 instancias **al mismo tiempo** (una terminal cada una).
 
@@ -236,7 +233,6 @@ Detener los servicios **no** deja de cobrar — lo que cobra es la **instancia e
 |---|---|---|
 | SSH "Connection timed out" | falta la regla SSH/My IP, o tu IP cambió | en `bigdata-sg` revisa la regla SSH = **My IP** (tu IP pública cambia con la red) |
 | El worker no aparece (slots < 8) | el master no estaba listo, o red bloqueada | confirma master arriba; revisa que la 3.ª regla SG = **All traffic / la propia SG** |
-| `docker: permission denied` | falta re-login tras setup | corre `newgrp docker` o reabre el SSH |
 | Dashboard no carga en el navegador | falta regla 5000/My IP, o tu IP cambió | revisa la regla 5000 = **My IP**; usa la **IP pública** del master |
 | Jobs Flink se caen al rato | poca memoria si pusiste un tipo chico | usa **t3.large**; no resometas jobs en bucle (presiona memoria) |
 | "Public IPv4" vacío | la instancia no tiene IP pública | EC2 → Instance → Actions → Networking → asociar IP, o relanzar con auto-assign public IP **on** |
