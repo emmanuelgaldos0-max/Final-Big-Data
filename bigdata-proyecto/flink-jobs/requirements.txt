@@ -1,0 +1,9 @@
+# flink-jobs/requirements.txt
+# Apache Flink real vía PyFlink (DataStream API). Incluye el runtime de Flink.
+apache-flink==1.19.1
+redis==5.0.1
+
+# NOTA: PyFlink necesita el conector Kafka como JAR aparte (no viene en el wheel).
+# Descargar flink-sql-connector-kafka y, o bien copiarlo a $FLINK_HOME/lib,
+# o exportar su ruta en FLINK_CONNECTOR_JARS (ver README / docs/local.md):
+#   https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka/3.2.0-1.19/flink-sql-connector-kafka-3.2.0-1.19.jar

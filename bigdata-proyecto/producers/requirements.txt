@@ -1,0 +1,7 @@
+# producers/requirements.txt
+kafka-python-ng==2.2.3
+requests==2.31.0
+redis==5.0.1
+# Para data/fetch_real_datasets.py (descarga de datasets reales en parquet desde Hugging Face)
+pandas==2.3.3
+pyarrow==11.0.0

@@ -1,0 +1,14 @@
+# requirements-cluster.txt — dependencias Python del cluster (probadas en el repo físico).
+# Se instalan en TODAS las instancias (master y workers) con el mismo Python 3.10.
+# En EC2 las 3 máquinas son Ubuntu 22.04 idéntico, así que NO hay el típico problema
+# de versiones de Python distintas entre nodos (el gotcha #6 del cluster físico).
+
+apache-flink==1.19.1     # arrastra apache-beam 2.48.0 (runtime PyFlink)
+pyspark==3.5.1
+kafka-python-ng==2.2.3
+requests==2.31.0
+redis==5.0.1
+flask==3.0.0
+pandas==2.3.3
+numpy==1.24.4
+pyarrow==11.0.0

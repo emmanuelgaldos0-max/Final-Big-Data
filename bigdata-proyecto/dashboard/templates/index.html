@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ODIO·SCAN — Detección de Discurso Discriminatorio · Perú</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0a0c12; --bg2:#0e111a; --panel:#11151f; --panel2:#141a26;
+      --border:#1d2433; --border2:#262f42;
+      --txt:#e6edf3; --muted:#8b94a7; --muted2:#5b6479;
+      --red:#ff5d5d; --amber:#ffb454; --violet:#b58cff; --blue:#56a8ff;
+      --green:#3fdd97; --cyan:#42d4cf;
+      --grad:linear-gradient(135deg,#7c5cff,#ff5d8f);
+      --shadow:0 8px 30px rgba(0,0,0,.45);
+      --radius:14px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{
+      font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+      background:
+        radial-gradient(1200px 600px at 80% -10%, rgba(124,92,255,.10), transparent 60%),
+        radial-gradient(900px 500px at -10% 0%, rgba(255,93,143,.08), transparent 55%),
+        var(--bg);
+      color:var(--txt); min-height:100vh; letter-spacing:-.01em;
+      -webkit-font-smoothing:antialiased;
+    }
+    .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+    /* ---------- Top bar ---------- */
+    header{
+      position:sticky;top:0;z-index:50;
+      display:flex;align-items:center;gap:18px;
+      padding:14px 28px;
+      background:rgba(10,12,18,.78);backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border);
+    }
+    .logo{
+      width:40px;height:40px;border-radius:11px;flex-shrink:0;
+      background:var(--grad);display:grid;place-items:center;
+      box-shadow:0 6px 18px rgba(124,92,255,.4);
+    }
+    .logo svg{width:22px;height:22px}
+    .brand h1{font-size:1.02rem;font-weight:800;letter-spacing:-.02em}
+    .brand h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .brand p{font-size:.72rem;color:var(--muted);margin-top:2px;font-weight:500}
+    .top-right{margin-left:auto;display:flex;align-items:center;gap:20px}
+    .stat-inline{text-align:right}
+    .stat-inline .v{font-size:.92rem;font-weight:700}
+    .stat-inline .k{font-size:.62rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em}
+    .live{display:flex;align-items:center;gap:8px;font-size:.74rem;font-weight:600;
+      padding:7px 13px;border:1px solid var(--border2);border-radius:99px;background:var(--panel)}
+    .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+      box-shadow:0 0 0 0 rgba(63,221,151,.6);animation:pulse 1.6s infinite}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,221,151,.55)}70%{box-shadow:0 0 0 9px rgba(63,221,151,0)}100%{box-shadow:0 0 0 0 rgba(63,221,151,0)}}
+
+    /* ---------- Alert ---------- */
+    #alert-bar{
+      display:none;align-items:center;gap:10px;
+      padding:11px 28px;font-size:.82rem;font-weight:600;
+      background:linear-gradient(90deg,rgba(255,93,93,.18),rgba(255,93,93,.04));
+      color:#ffc4c4;border-bottom:1px solid rgba(255,93,93,.35)}
+    #alert-bar .pill{background:var(--red);color:#1a0000;padding:2px 9px;border-radius:6px;font-size:.68rem;font-weight:800;letter-spacing:.04em}
+
+    .wrap{max-width:1480px;margin:0 auto;padding:26px 28px 60px}
+    .sec-title{font-size:.7rem;font-weight:700;color:var(--muted2);text-transform:uppercase;
+      letter-spacing:.14em;margin:30px 4px 14px;display:flex;align-items:center;gap:10px}
+    .sec-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+
+    /* ---------- KPI ---------- */
+    .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+    @media(max-width:1180px){.kpis{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:620px){.kpis{grid-template-columns:repeat(2,1fr)}}
+    .kpi{position:relative;overflow:hidden;background:var(--panel);
+      border:1px solid var(--border);border-radius:var(--radius);padding:16px 16px 12px;
+      transition:transform .18s ease,border-color .18s ease}
+    .kpi:hover{transform:translateY(-3px);border-color:var(--border2)}
+    .kpi::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--accent,var(--blue));opacity:.9}
+    .kpi .label{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600;display:flex;align-items:center;gap:7px}
+    .kpi .dot{width:7px;height:7px;border-radius:50%;background:var(--accent,var(--blue))}
+    .kpi .value{font-size:1.95rem;font-weight:800;margin:9px 0 1px;line-height:1;letter-spacing:-.03em}
+    .kpi .sub{font-size:.7rem;color:var(--muted2);font-weight:500}
+    .kpi .spark{position:absolute;right:10px;bottom:8px;width:72px;height:30px;opacity:.85}
+    .a-blue{--accent:var(--blue)} .a-red{--accent:var(--red)} .a-amber{--accent:var(--amber)}
+    .a-violet{--accent:var(--violet)} .a-green{--accent:var(--green)} .a-cyan{--accent:var(--cyan)}
+    .badge-sla{font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:5px;margin-left:6px}
+    .ok{background:rgba(63,221,151,.16);color:var(--green)}
+    .bad{background:rgba(255,93,93,.16);color:var(--red)}
+
+    /* ---------- Cards / grid ---------- */
+    .grid{display:grid;gap:16px}
+    .g-2{grid-template-columns:1.55fr 1fr}
+    .g-3{grid-template-columns:repeat(3,1fr)}
+    @media(max-width:980px){.g-2,.g-3{grid-template-columns:1fr}}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 16px}
+    .card h3{font-size:.78rem;color:var(--txt);font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+    .card .hint{font-size:.68rem;color:var(--muted2);margin-bottom:14px;font-weight:500}
+    .chart-wrap{position:relative;height:240px}
+    .chart-sm{height:210px}
+
+    /* ---------- Sources panel ---------- */
+    .src-row{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+    .src-row .name{font-size:.74rem;font-weight:600;width:148px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)}
+    .src-row .bar{flex:1;height:8px;background:var(--panel2);border-radius:99px;overflow:hidden}
+    .src-row .fill{height:100%;border-radius:99px;background:var(--grad);transition:width .6s ease}
+    .src-row .val{font-size:.72rem;color:var(--muted);width:62px;text-align:right;font-weight:600}
+
+    /* ---------- Live feed ---------- */
+    .feed{display:grid;gap:9px;max-height:430px;overflow-y:auto;padding-right:6px}
+    .feed::-webkit-scrollbar{width:7px}.feed::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+    .item{position:relative;background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--red);
+      border-radius:10px;padding:11px 13px;animation:fade .35s ease}
+    .item.terruco{border-left-color:var(--amber)}
+    @keyframes fade{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+    .item .txt{font-size:.84rem;line-height:1.4;color:#dde5ee}
+    .item .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .chip{font-size:.62rem;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.02em}
+    .c-red{background:rgba(255,93,93,.15);color:var(--red)}
+    .c-amber{background:rgba(255,180,84,.15);color:var(--amber)}
+    .c-violet{background:rgba(181,140,255,.15);color:var(--violet)}
+    .c-src{background:rgba(86,168,255,.13);color:var(--blue)}
+    .c-origin{background:var(--panel);color:var(--muted);border:1px solid var(--border2)}
+    .tox{margin-left:auto;display:flex;align-items:center;gap:7px}
+    .tox .meter{width:54px;height:6px;border-radius:99px;background:var(--panel)}
+    .tox .mfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--amber),var(--red))}
+    .tox .tval{font-size:.7rem;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums}
+    .time{font-size:.64rem;color:var(--muted2)}
+    .empty{color:var(--muted2);font-size:.8rem;text-align:center;padding:30px}
+
+    /* ---------- Timeline interactivo ---------- */
+    .tl-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+    .tl-range{display:flex;gap:6px}
+    .tl-range button{background:var(--panel2);color:var(--muted);border:1px solid var(--border);border-radius:8px;
+      padding:6px 13px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+    .tl-range button:hover{color:var(--txt);border-color:var(--border2)}
+    .tl-range button.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(124,92,255,.35)}
+    .trend-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0 16px}
+    @media(max-width:760px){.trend-row{grid-template-columns:repeat(2,1fr)}}
+    .trend{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--border);
+      border-radius:11px;padding:11px 13px}
+    .trend .td-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+    .trend .td-l{display:flex;flex-direction:column;gap:2px}
+    .trend .td-name{font-size:.72rem;font-weight:600;color:var(--muted)}
+    .trend .td-now{font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+    .trend .td-val{margin-left:auto;font-size:.74rem;font-weight:800;font-variant-numeric:tabular-nums;
+      padding:3px 8px;border-radius:7px;white-space:nowrap}
+    .trend .up{color:var(--red);background:rgba(255,93,93,.13)}
+    .trend .down{color:var(--green);background:rgba(63,221,151,.13)}
+    .trend .flat{color:var(--muted);background:var(--panel)}
+
+    /* ---------- Cluster distribuido ---------- */
+    .cluster{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+    @media(max-width:900px){.cluster{grid-template-columns:1fr}}
+    .node{position:relative;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:14px 15px 15px;overflow:hidden}
+    .node::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--blue)}
+    .node.master::before{background:var(--grad)}
+    .node.offline{opacity:.5}
+    .node .nhead{display:flex;align-items:center;gap:9px}
+    .node .ndot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(63,221,151,.6);animation:pulse 1.8s infinite;flex-shrink:0}
+    .node.offline .ndot{background:var(--muted2);animation:none}
+    .node .nip{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:700;color:var(--txt)}
+    .node-badge{font-size:.57rem;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:5px;text-transform:uppercase}
+    .node-badge.master{background:var(--grad);color:#fff}
+    .node-badge.worker{background:rgba(86,168,255,.16);color:var(--blue)}
+    .node .nsvc{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 6px}
+    .node .nsvc span{font-size:.59rem;font-weight:600;color:var(--muted);background:var(--panel);border:1px solid var(--border);padding:2px 7px;border-radius:5px}
+    .node .nload{margin-top:10px}
+    .node .nload .ll{display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted);margin-bottom:4px}
+    .node .nload .ll b{color:var(--txt);font-variant-numeric:tabular-nums}
+    .node .nbar{height:7px;background:var(--panel);border-radius:99px;overflow:hidden}
+    .node .nbar i{display:block;height:100%;border-radius:99px;background:var(--grad);transition:width .5s ease}
+    .node .nbar.spark i{background:linear-gradient(90deg,var(--amber),var(--green))}
+    .node .nidle{font-size:.66rem;color:var(--muted2);margin-top:8px}
+
+    footer{max-width:1480px;margin:0 auto;padding:24px 28px;color:var(--muted2);font-size:.72rem;
+      display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--border);margin-top:30px}
+    footer code{font-family:'JetBrains Mono',monospace;color:var(--muted);background:var(--panel);padding:2px 7px;border-radius:5px}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l8 3v6c0 5-3.4 8.5-8 11-4.6-2.5-8-6-8-11V5l8-3z" fill="#fff" opacity=".95"/><path d="M9 12l2 2 4-4" stroke="#7c5cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="brand">
+    <h1>ODIO<span>·SCAN</span> &nbsp;·&nbsp; Detección de Discurso Discriminatorio</h1>
+    <p>Contexto electoral peruano · Kafka → Flink → Spark → Redis · streaming en tiempo real</p>
+  </div>
+  <div class="top-right">
+    <div class="stat-inline"><div class="v num" id="hdr-thr">— msg/s</div><div class="k">Throughput</div></div>
+    <div class="stat-inline"><div class="v num" id="hdr-upd">—</div><div class="k">Actualizado</div></div>
+    <div class="live"><span class="live-dot"></span><span id="live-label">EN VIVO</span></div>
+  </div>
+</header>
+
+<div id="alert-bar"><span class="pill">ALERTA</span><span id="alert-msg"></span></div>
+
+<div class="wrap">
+
+  <div class="sec-title">Indicadores clave</div>
+  <div class="kpis">
+    <div class="kpi a-blue">
+      <div class="label"><span class="dot"></span>Total procesados</div>
+      <div class="value num" id="k-total">—</div><div class="sub">mensajes analizados</div>
+      <canvas class="spark" id="sp-total"></canvas>
+    </div>
+    <div class="kpi a-red">
+      <div class="label"><span class="dot"></span>Discurso de odio</div>
+      <div class="value num" id="k-hate">—</div><div class="sub"><span id="k-hate-rate">—</span>% del total</div>
+      <canvas class="spark" id="sp-hate"></canvas>
+    </div>
+    <div class="kpi a-amber">
+      <div class="label"><span class="dot"></span>Terruqueo</div>
+      <div class="value num" id="k-terruco">—</div><div class="sub"><span id="k-terruco-rate">—</span>% del total</div>
+      <canvas class="spark" id="sp-terruco"></canvas>
+    </div>
+    <div class="kpi a-violet">
+      <div class="label"><span class="dot"></span>Discriminación</div>
+      <div class="value num" id="k-discrim">—</div><div class="sub">racial · clase · género</div>
+      <canvas class="spark" id="sp-discrim"></canvas>
+    </div>
+    <div class="kpi a-green">
+      <div class="label"><span class="dot"></span>Latencia prom.</div>
+      <div class="value num" id="k-lat">—</div><div class="sub">ms · extremo a extremo (Flink)</div>
+    </div>
+    <div class="kpi a-cyan">
+      <div class="label"><span class="dot"></span>Latencia P95</div>
+      <div class="value num" id="k-p95">—</div>
+      <div class="sub">SLA &gt;2s: <span id="k-sla">0</span><span class="badge-sla ok" id="k-sla-b">OK</span></div>
+    </div>
+  </div>
+
+  <div class="sec-title">Cluster distribuido — nodos trabajando en vivo</div>
+  <div class="card" style="margin-bottom:2px">
+    <div class="tl-head">
+      <div>
+        <h3>🖧 Topología del cluster <span id="cluster-badge" class="node-badge worker" style="margin-left:6px">—</span></h3>
+        <div class="hint" id="cluster-sum">consultando nodos del cluster…</div>
+      </div>
+    </div>
+    <div class="cluster" id="cluster"><div class="empty">detectando nodos…</div></div>
+  </div>
+
+  <div class="sec-title">Análisis en tiempo real — evolución de la detección</div>
+  <div class="card">
+    <div class="tl-head">
+      <div>
+        <h3>🛰️ Detección por tipo a lo largo del tiempo</h3>
+        <div class="hint">Eventos detectados por segundo. Clic en la leyenda para aislar una serie · pasa el cursor para ver el detalle · variación = mitad reciente vs. mitad anterior de la ventana</div>
+      </div>
+      <div class="tl-range" id="tl-range">
+        <button data-w="30">30s</button>
+        <button data-w="60" class="on">1 min</button>
+        <button data-w="180">3 min</button>
+        <button data-w="300">5 min</button>
+      </div>
+    </div>
+    <div class="trend-row" id="trend-row"></div>
+    <div class="chart-wrap" style="height:300px"><canvas id="c-timeline"></canvas></div>
+  </div>
+
+  <div class="sec-title">Flujo en tiempo real</div>
+  <div class="grid g-2">
+    <div class="card">
+      <h3>📈 Throughput del pipeline</h3>
+      <div class="hint">Mensajes/segundo procesados por Flink · medición real en el servidor (Job #1)</div>
+      <div class="chart-wrap"><canvas id="c-thr"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>🧭 Distribución del contenido</h3>
+      <div class="hint">Proporción odio / terruqueo / normal sobre el total</div>
+      <div class="chart-wrap"><canvas id="c-dist"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sec-title">Análisis</div>
+  <div class="grid g-3">
+    <div class="card">
+      <h3>🔥 Tipos de discurso — ventana 60s</h3>
+      <div class="hint">Ventana deslizante Flink (Job #2)</div>
+      <div class="chart-wrap chart-sm"><canvas id="c-window"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>🏛️ Temas políticos detectados</h3>
+      <div class="hint">Clasificador de temas Flink (Job #5) · excluye contenido no político</div>
+      <div class="chart-wrap chart-sm"><canvas id="c-topics"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>🛰️ Fuentes de datos reales</h3>
+      <div class="hint">Volumen por origen (datasets/redes reales)</div>
+      <div id="src-list" style="margin-top:6px"><div class="empty">esperando datos…</div></div>
+    </div>
+  </div>
+
+  <div class="sec-title">Monitor de contenido tóxico</div>
+  <div class="card">
+    <h3>🚨 Feed en vivo — publicaciones marcadas</h3>
+    <div class="hint">Últimos eventos clasificados como odio o terruqueo, con su procedencia real</div>
+    <div class="feed" id="feed"><div class="empty">esperando eventos…</div></div>
+  </div>
+
+</div>
+
+<footer>
+  <span>Pipeline:</span> <code>Kafka</code> → <code>Flink (5 jobs)</code> → <code>Spark (5 jobs)</code> → <code>Redis</code> → <code>Dashboard</code>
+  <span style="margin-left:auto">Big Data · Trabajo Final · Universidad</span>
+</footer>
+
+<script>
+const C = {red:'#ff5d5d',amber:'#ffb454',violet:'#b58cff',blue:'#56a8ff',green:'#3fdd97',cyan:'#42d4cf',muted:'#5b6479',grid:'#1d2433',panel:'#141a26'};
+Chart.defaults.color = C.muted;
+Chart.defaults.font.family = "'Inter',sans-serif";
+Chart.defaults.font.size = 11;
+
+function spark(id,color){
+  return new Chart(document.getElementById(id),{type:'line',
+    data:{labels:[],datasets:[{data:[],borderColor:color,borderWidth:2,
+      backgroundColor:'transparent',fill:false,tension:.4,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{display:false},y:{display:false}}}});
+}
+const SP={total:spark('sp-total',C.blue),hate:spark('sp-hate',C.red),
+  terruco:spark('sp-terruco',C.amber),discrim:spark('sp-discrim',C.violet)};
+function pushSpark(ch,v){ch.data.labels.push('');ch.data.datasets[0].data.push(v);
+  if(ch.data.datasets[0].data.length>24){ch.data.labels.shift();ch.data.datasets[0].data.shift();}ch.update('none');}
+
+const axes={x:{grid:{color:C.grid},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:7}},
+            y:{grid:{color:C.grid},beginAtZero:true}};
+
+const cThr=new Chart(document.getElementById('c-thr'),{type:'line',
+  data:{labels:[],datasets:[{label:'msg/s',data:[],borderColor:C.green,borderWidth:2.4,
+    fill:true,tension:.4,pointRadius:0,
+    backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,240);
+      g.addColorStop(0,'rgba(63,221,151,.32)');g.addColorStop(1,'rgba(63,221,151,0)');return g;}}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},
+    plugins:{legend:{display:false}},scales:axes}});
+
+const cDist=new Chart(document.getElementById('c-dist'),{type:'doughnut',
+  data:{labels:['Normal','Discurso de odio','Terruqueo'],
+    datasets:[{data:[1,0,0],backgroundColor:['#27304a',C.red,C.amber],borderColor:C.panel,borderWidth:3,hoverOffset:6}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'66%',
+    plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true,pointStyle:'circle'}}}}});
+
+const cWin=new Chart(document.getElementById('c-window'),{type:'bar',
+  data:{labels:['Odio','Terruqueo','Discrim.','Político'],
+    datasets:[{data:[0,0,0,0],backgroundColor:[C.red,C.amber,C.violet,C.blue],borderRadius:6,maxBarThickness:46}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:axes}});
+
+const cTop=new Chart(document.getElementById('c-topics'),{type:'polarArea',
+  data:{labels:[],datasets:[{data:[],backgroundColor:[C.blue,C.red,C.amber,C.green,C.cyan,C.violet,C.muted]}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'right',labels:{padding:8,usePointStyle:true,pointStyle:'circle',font:{size:10}}}},
+    scales:{r:{grid:{color:C.grid},ticks:{display:false}}}}});
+
+// ---- timeline interactivo (detección por tipo) ----
+const TL_TYPES=[
+  {k:'hate',label:'Odio',color:C.red},
+  {k:'terruco',label:'Terruqueo',color:C.amber},
+  {k:'discrim',label:'Discriminación',color:C.violet},
+  {k:'political',label:'Político',color:C.blue},
+];
+const cTimeline=new Chart(document.getElementById('c-timeline'),{type:'line',
+  data:{labels:[],datasets:TL_TYPES.map(t=>({label:t.label,data:[],borderColor:t.color,
+    backgroundColor:t.color+'22',borderWidth:2.2,fill:false,tension:.35,pointRadius:0,pointHoverRadius:5}))},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',padding:16}},
+      tooltip:{backgroundColor:'#0e111a',borderColor:C.grid,borderWidth:1,padding:10}},
+    scales:axes}});
+
+const fmt=n=>Number(n||0).toLocaleString('es-PE');
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+
+async function jget(u){const r=await fetch(u);return r.json();}
+
+async function updateMetrics(){
+  try{
+    const d=await jget('/api/metrics');
+    setText('k-total',fmt(d.total_processed));
+    setText('k-hate',fmt(d.hate_count));   setText('k-hate-rate',d.hate_rate);
+    setText('k-terruco',fmt(d.terruco_count)); setText('k-terruco-rate',d.terruco_rate);
+    setText('k-discrim',fmt(d.discrimination_count));
+    setText('k-lat',(d.avg_latency_ms||0)+' ');
+    setText('k-p95',(d.p95_latency_ms||0)+' ');
+    setText('k-sla',fmt(d.sla_violations));
+    const sb=document.getElementById('k-sla-b');
+    if(sb){const bad=(d.sla_violations||0)>0;sb.textContent=bad?'REVISAR':'OK';sb.className='badge-sla '+(bad?'bad':'ok');}
+
+    setText('hdr-upd','hace 0s');
+
+    pushSpark(SP.total,d.total_processed);pushSpark(SP.hate,d.hate_count);
+    pushSpark(SP.terruco,d.terruco_count);pushSpark(SP.discrim,d.discrimination_count);
+
+    const wt=d.window_trends||{};
+    cWin.data.datasets[0].data=[wt.hate_count||0,wt.terruco_count||0,wt.discrimination_count||0,wt.political_count||0];
+    cWin.update('none');
+
+    const normal=Math.max(0,d.total_processed-d.hate_count-d.terruco_count);
+    cDist.data.datasets[0].data=[normal,d.hate_count,d.terruco_count];cDist.update('none');
+  }catch(e){document.getElementById('live-label').textContent='SIN CONEXIÓN';}
+}
+
+let tlWindow=60;
+async function updateTimeline(){
+  try{
+    const d=await jget('/api/timeline?window='+tlWindow);
+    const s=d.series||[];
+    const labels=s.map(p=>new Date(p.t*1000).toLocaleTimeString('es',{minute:'2-digit',second:'2-digit'}));
+    cTimeline.data.labels=labels;
+    TL_TYPES.forEach((t,i)=>{cTimeline.data.datasets[i].data=s.map(p=>p[t.k]||0);});
+    cTimeline.update('none');
+    // gráfica de throughput (total) en su tarjeta
+    cThr.data.labels=labels;cThr.data.datasets[0].data=s.map(p=>p.total||0);cThr.update('none');
+    setText('hdr-thr',(d.current||0).toLocaleString('es-PE')+' msg/s');
+    // tarjetas de tendencia (tasa actual por tipo + variación % vs. mitad anterior)
+    const lastPt=s[s.length-1]||{};
+    const tr=d.trend||{};
+    document.getElementById('trend-row').innerHTML=TL_TYPES.map(t=>{
+      const v=tr[t.k]||0; const cls=v>3?'up':(v<-3?'down':'flat'); const arrow=v>3?'▲':(v<-3?'▼':'■');
+      const rate=(lastPt[t.k]||0);
+      return `<div class="trend"><span class="td-dot" style="background:${t.color}"></span>
+        <div class="td-l"><span class="td-name">${t.label} · ahora</span><span class="td-now">${rate}<span style="font-size:.6em;color:var(--muted)">/s</span></span></div>
+        <span class="td-val ${cls}">${arrow} ${v>0?'+':''}${v}%</span></div>`;}).join('');
+  }catch(e){}
+}
+
+async function updateTopics(){
+  try{const d=await jget('/api/topics');
+    const map={politica:'Política',economia:'Economía',seguridad:'Seguridad',corrupcion:'Corrupción',
+      derechos_humanos:'DD.HH.',medioambiente:'Ambiente',educacion:'Educación'};
+    // "otros" = no político: se excluye del gráfico (el panel es de TEMAS POLÍTICOS)
+    const ent=Object.entries(d.topics||{}).filter(([k,v])=>v>0 && k!=='otros');
+    cTop.data.labels=ent.map(([k])=>map[k]||k);
+    cTop.data.datasets[0].data=ent.map(([,v])=>v);cTop.update('none');
+  }catch(e){}
+}
+
+async function updateSources(){
+  try{const d=await jget('/api/sources');
+    const origins=d.origins&&Object.keys(d.origins).length?d.origins:d.sources||{};
+    const ent=Object.entries(origins).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const box=document.getElementById('src-list');
+    if(!ent.length){box.innerHTML='<div class="empty">esperando datos…</div>';return;}
+    const max=Math.max(...ent.map(([,v])=>v),1);
+    box.innerHTML=ent.map(([k,v])=>{
+      const name=k.includes('/')?k.split('/')[1]:k;
+      return `<div class="src-row"><div class="name" title="${k}">${name}</div>
+        <div class="bar"><div class="fill" style="width:${Math.round(v/max*100)}%"></div></div>
+        <div class="val num">${fmt(v)}</div></div>`;}).join('');
+  }catch(e){}
+}
+
+async function updateFeed(){
+  try{const d=await jget('/api/live-feed');
+    const box=document.getElementById('feed');
+    if(!d.feed||!d.feed.length){box.innerHTML='<div class="empty">esperando eventos…</div>';return;}
+    box.innerHTML=d.feed.slice(0,18).map(it=>{
+      const tox=(it.toxicity||0);
+      const types=(it.types||[]).map(t=>`<span class="chip c-violet">${t}</span>`).join('');
+      const terr=it.is_terruco?'<span class="chip c-amber">TERRUQUEO</span>':'';
+      const src=it.source?`<span class="chip c-src">${it.source}</span>`:'';
+      const orig=it.origin?`<span class="chip c-origin">${it.origin.split('/').pop()}</span>`:'';
+      const tm=it.processed_at?new Date(it.processed_at).toLocaleTimeString('es'):'';
+      return `<div class="item ${it.is_terruco?'terruco':''}">
+        <div class="txt">${(it.text||'…').replace(/</g,'&lt;')}</div>
+        <div class="meta">${terr}${types}${src}${orig}<span class="time">${tm}</span>
+          <span class="tox"><span class="meter"><span class="mfill" style="width:${Math.min(100,tox*100)}%"></span></span>
+          <span class="tval">${tox.toFixed(2)}</span></span></div></div>`;}).join('');
+  }catch(e){}
+}
+
+async function checkAlerts(){
+  try{const d=await jget('/api/alerts');
+    const bar=document.getElementById('alert-bar');
+    if(d.burst_alerts&&d.burst_alerts.length){
+      const a=d.burst_alerts[0];
+      document.getElementById('alert-msg').textContent=
+        `Ráfaga de contenido tóxico: ${a.total_toxic||a.current_count||''} eventos en ${a.window_seconds||60}s · ${a.detected_at||''}`;
+      bar.style.display='flex';
+    }else bar.style.display='none';
+  }catch(e){}
+}
+
+async function updateCluster(){
+  try{const d=await jget('/api/cluster');
+    const s=d.summary||{};
+    const badge=document.getElementById('cluster-badge');
+    const nn=s.nodes||0;
+    badge.textContent=nn+' NODO'+(nn===1?'':'S');
+    badge.className='node-badge '+(nn>=2?'master':'worker');
+    document.getElementById('cluster-sum').innerHTML=
+      `${s.taskmanagers||0} TaskManagers · <b>${s.slots_used||0}/${s.slots||0}</b> slots Flink en uso · `+
+      `${s.spark_workers||0} Spark workers · ${s.jobs_running||0} jobs RUNNING`;
+    const box=document.getElementById('cluster');
+    const nodes=d.nodes||[];
+    if(!nodes.length){box.innerHTML='<div class="empty">sin nodos detectados</div>';return;}
+    box.innerHTML=nodes.map(n=>{
+      const svc=(n.services||[]).map(x=>`<span>${x}</span>`).join('');
+      let load='';
+      if(n.flink){const p=Math.round((n.flink.used/Math.max(n.flink.slots,1))*100);
+        load+=`<div class="nload"><div class="ll"><span>Flink · slots</span><b>${n.flink.used}/${n.flink.slots}</b></div><div class="nbar"><i style="width:${p}%"></i></div></div>`;}
+      if(n.spark){const p=Math.round((n.spark.used/Math.max(n.spark.cores,1))*100);
+        load+=`<div class="nload"><div class="ll"><span>Spark · cores</span><b>${n.spark.used}/${n.spark.cores}</b></div><div class="nbar spark"><i style="width:${p}%"></i></div></div>`;}
+      if(!load) load=`<div class="nidle">${n.role==='master'?'coordina el cluster':'esperando carga de cómputo'}</div>`;
+      return `<div class="node ${n.role}${n.online?'':' offline'}">
+        <div class="nhead"><span class="ndot"></span><span class="nip">${n.ip}</span>
+          <span class="node-badge ${n.role}" style="margin-left:auto">${n.role==='master'?'MASTER':'WORKER'}</span></div>
+        <div class="nsvc">${svc}</div>${load}</div>`;}).join('');
+  }catch(e){}
+}
+
+// reloj "actualizado hace Xs"
+let secs=0;setInterval(()=>{secs++;const e=document.getElementById('hdr-upd');if(e&&e.textContent.includes('hace'))e.textContent='hace '+secs+'s';},1000);
+function tick(fn){return async()=>{await fn();if(fn===updateMetrics)secs=0;}}
+
+// selector de ventana de tiempo
+document.getElementById('tl-range').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  tlWindow=+b.dataset.w;
+  document.querySelectorAll('#tl-range button').forEach(x=>x.classList.toggle('on',x===b));
+  updateTimeline();
+});
+
+updateMetrics();updateTimeline();updateTopics();updateSources();updateFeed();checkAlerts();updateCluster();
+setInterval(updateCluster,5000);
+setInterval(tick(updateMetrics),2500);
+setInterval(updateTimeline,2000);
+setInterval(updateTopics,7000);
+setInterval(updateSources,6000);
+setInterval(updateFeed,3000);
+setInterval(checkAlerts,9000);
+</script>
+</body>
+</html>

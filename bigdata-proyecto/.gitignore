@@ -1,0 +1,23 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# JARs de conectores (se descargan aparte, no se versionan)
+*.jar
+libs/
+
+# Datos generados por el pipeline (no son fuente)
+data/classified/
+data/reports/
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
