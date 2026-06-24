@@ -54,18 +54,50 @@ cluster:
 EOF
 echo "### config.yaml de Flink (JobManager en $PRIV_IP) ###"
 
-echo "### 1/5  Kafka + Redis (Docker, advertised en $PRIV_IP) ###"
-cd "$BD_PROJECT"
-HOST_LAN_IP="$PRIV_IP" docker compose -f docker-compose.cluster.yml up -d
-for i in $(seq 1 25); do
-  docker exec bigdata-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1 && break
-  sleep 2
+echo "### 1/5  Redis + Kafka NATIVOS (sin Docker, advertised en $PRIV_IP) ###"
+# --- Redis nativo (apt) bound 0.0.0.0 para que los workers escriban ---
+command -v redis-server >/dev/null 2>&1 || sudo apt-get install -y -qq redis-server >/dev/null
+sudo sed -i 's/^bind .*/bind 0.0.0.0/; s/^protected-mode yes/protected-mode no/' /etc/redis/redis.conf 2>/dev/null
+sudo systemctl restart redis-server 2>/dev/null
+redis-cli -h 127.0.0.1 ping >/dev/null 2>&1 && echo "    Redis nativo OK"
+# --- Kafka nativo (KRaft), advertised en la IP privada ---
+KAFKA="$HOME/kafka-native"; KVER="3.7.0"
+if [ ! -d "$KAFKA" ]; then
+  ( cd "$HOME" && wget -q "https://archive.apache.org/dist/kafka/${KVER}/kafka_2.13-${KVER}.tgz" \
+    && tar xzf "kafka_2.13-${KVER}.tgz" && ln -sfn "$HOME/kafka_2.13-${KVER}" "$KAFKA" \
+    && rm -f "kafka_2.13-${KVER}.tgz" )
+fi
+cat > "$KAFKA/config/bigdata-kraft.properties" <<KCFG
+process.roles=broker,controller
+node.id=1
+controller.quorum.voters=1@localhost:9093
+listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+advertised.listeners=PLAINTEXT://$PRIV_IP:9092
+listener.security.protocol.map=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+controller.listener.names=CONTROLLER
+inter.broker.listener.name=PLAINTEXT
+auto.create.topics.enable=false
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+log.dirs=/tmp/kraft-bigdata-logs
+num.partitions=3
+KCFG
+if ! "$JAVA_HOME/bin/jps" 2>/dev/null | grep -q Kafka; then
+  rm -rf /tmp/kraft-bigdata-logs
+  UUID=$("$KAFKA/bin/kafka-storage.sh" random-uuid)
+  "$KAFKA/bin/kafka-storage.sh" format -t "$UUID" -c "$KAFKA/config/bigdata-kraft.properties" >/dev/null 2>&1
+  "$KAFKA/bin/kafka-server-start.sh" -daemon "$KAFKA/config/bigdata-kraft.properties"
+fi
+for i in $(seq 1 30); do
+  "$KAFKA/bin/kafka-topics.sh" --bootstrap-server "$PRIV_IP:9092" --list >/dev/null 2>&1 && { echo "    Kafka nativo OK"; break; }
+  sleep 3
 done
 
 echo "### 2/5  Topics Kafka (raw-tweets, raw-comments, classified-hate, metrics, alerts) ###"
 for t in raw-tweets raw-comments classified-hate metrics alerts; do
-  docker exec bigdata-kafka /opt/kafka/bin/kafka-topics.sh --create --if-not-exists \
-    --bootstrap-server localhost:9092 --replication-factor 1 --partitions 3 --topic "$t" >/dev/null 2>&1
+  "$KAFKA/bin/kafka-topics.sh" --create --if-not-exists \
+    --bootstrap-server "$PRIV_IP:9092" --replication-factor 1 --partitions 3 --topic "$t" >/dev/null 2>&1
 done
 echo "    topics OK"
 
@@ -85,7 +117,8 @@ echo "### 5/5  Dashboard (puerto 5000) ###"
 if curl -s -m3 -o /dev/null http://localhost:5000/ 2>/dev/null; then
   echo "    dashboard ya corriendo"
 else
-  ( cd "$BD_PROJECT/dashboard" && REDIS_HOST=localhost PYTHONUNBUFFERED=1 \
+  ( cd "$BD_PROJECT/dashboard" && MASTER_IP="$PRIV_IP" FLINK_REST="http://$PRIV_IP:8081" \
+      SPARK_UI="http://$PRIV_IP:8080" REDIS_HOST=localhost PYTHONUNBUFFERED=1 \
       nohup "$BD_VENV/bin/python" -u app.py >/tmp/dashboard.log 2>&1 & )
   echo "    dashboard lanzado"
 fi

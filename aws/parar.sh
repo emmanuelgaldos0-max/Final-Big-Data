@@ -19,8 +19,6 @@ pkill -f "dashboard/app.py"    2>/dev/null && echo "  dashboard detenido" || tru
 "$FLINK_HOME/bin/jobmanager.sh"  stop  >/dev/null 2>&1 && echo "  Flink JobManager detenido" || true
 "$SPARK_HOME/sbin/stop-worker.sh"      >/dev/null 2>&1 && echo "  Spark Worker detenido" || true
 "$SPARK_HOME/sbin/stop-master.sh"      >/dev/null 2>&1 && echo "  Spark Master detenido" || true
-if [ -f "$BD_PROJECT/docker-compose.cluster.yml" ]; then
-  ( cd "$BD_PROJECT" && docker compose -f docker-compose.cluster.yml down >/dev/null 2>&1 ) \
-    && echo "  Kafka + Redis detenidos" || true
-fi
+"$HOME/kafka-native/bin/kafka-server-stop.sh" >/dev/null 2>&1 && echo "  Kafka nativo detenido" || true
+sudo systemctl stop redis-server 2>/dev/null && echo "  Redis nativo detenido" || true
 echo "### Listo. Recuerda hacer STOP/TERMINATE de la instancia en la consola de AWS. ###"

@@ -8,8 +8,9 @@ PRIV_IP=$(hostname -I | awk '{print $1}')
 PY="$BD_VENV/bin/python"
 
 echo "===== SALUD DEL CLUSTER (master $PRIV_IP) ====="
-echo "-- Docker (Kafka + Redis) --"
-docker ps --format '  {{.Names}}  {{.Status}}' 2>/dev/null | grep -E 'kafka|redis' || echo "  (sin contenedores)"
+echo "-- Kafka + Redis NATIVOS --"
+"$JAVA_HOME/bin/jps" 2>/dev/null | grep -q Kafka && echo "  Kafka: corriendo" || echo "  Kafka: NO"
+redis-cli -h localhost ping >/dev/null 2>&1 && echo "  Redis: PONG" || echo "  Redis: NO"
 echo "-- Procesos Java (jps) --"
 "$JAVA_HOME/bin/jps" 2>/dev/null | grep -vE 'Jps$' | sed 's/^/  /' || true
 echo "-- Flink: slots y jobs --"
@@ -25,7 +26,7 @@ d=json.load(sys.stdin)
 print(f\"  workers ALIVE: {sum(1 for w in d.get('workers',[]) if w.get('state')=='ALIVE')}  ·  cores {d.get('cores',0)}\")
 " 2>/dev/null || echo "  (Spark Master no responde)"
 echo "-- Redis: métricas del pipeline --"
-docker exec bigdata-redis redis-cli -h localhost get metrics:total_processed 2>/dev/null | sed 's/^/  total_processed: /' || echo "  (Redis no responde)"
+redis-cli -h localhost get metrics:total_processed 2>/dev/null | sed 's/^/  total_processed: /' || echo "  (Redis no responde)"
 echo "-- Dashboard --"
 echo "  HTTP / -> $(curl -s -m4 -o /dev/null -w '%{http_code}' http://localhost:5000/ 2>/dev/null || echo 'sin respuesta')"
 echo "==============================================="

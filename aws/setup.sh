@@ -49,11 +49,9 @@ if ! apt-cache show python3.10 >/dev/null 2>&1; then
   sudo add-apt-repository -y ppa:deadsnakes/ppa >/dev/null 2>&1
   sudo apt-get update -qq
 fi
+# Sin Docker: Kafka y Redis corren NATIVOS en el master (los instala arrancar-master.sh).
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-    openjdk-11-jdk python3.10 python3.10-venv python3.10-dev python3-pip \
-    docker.io >/dev/null
-sudo systemctl enable --now docker >/dev/null 2>&1 || true
-sudo usermod -aG docker "$USER" || true     # para usar docker sin sudo (tras re-login)
+    openjdk-11-jdk python3.10 python3.10-venv python3.10-dev python3-pip >/dev/null
 
 JAVA_HOME_DIR="/usr/lib/jvm/java-11-openjdk-amd64"
 echo "    Java: $($JAVA_HOME_DIR/bin/java -version 2>&1 | head -1)"
@@ -123,9 +121,7 @@ grep -q 'source ~/.bdenv' "$HOME/.bashrc" 2>/dev/null || echo 'source ~/.bdenv' 
 
 echo ""
 echo "============================================================"
-echo " LISTO. Instalación completa en esta instancia."
-echo " Importante: cierra y reabre el SSH (o corre 'newgrp docker')"
-echo " para que 'docker' funcione sin sudo."
+echo " LISTO. Instalación completa en esta instancia (sin Docker, todo nativo)."
 echo ""
 echo " Siguiente paso:"
 echo "   - En el MASTER:  bash $HERE/arrancar-master.sh"
