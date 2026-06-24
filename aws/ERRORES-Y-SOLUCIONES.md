@@ -114,3 +114,27 @@ ssh -i $KEY ubuntu@IP1 'bash ~/Final-Big-Data-AWS/aws/lanzar-jobs.sh'
 - Master = JobManager + Spark Master + Kafka + Redis (NATIVOS, sin Docker) + dashboard + productor.
 - 2 workers = TaskManager (4 slots c/u) + Spark Worker → 8 slots, trabajo repartido.
 - Dashboard: `http://<IP_PUBLICA_MASTER>:5000` (panel muestra los 3 nodos).
+
+---
+
+## ⭐ ATAJO: las instancias PERSISTEN entre sesiones del Lab
+
+Si **NO terminas** las instancias (solo se detienen al cerrar el Lab), al volver siguen ahí
+con TODO instalado (Flink/Spark/venv/código en el disco EBS). Re-desplegar es **~2 min**:
+
+1. Las **IPs públicas CAMBIAN** (stop/start las reasigna); las **privadas se MANTIENEN**
+   (172.31.39.239 master, etc.) → la config sigue válida, no se reconfigura nada.
+2. El **Security Group también persiste** (la regla `172.31.0.0/16` sigue puesta).
+3. Solo re-arrancar los servicios (NO setup):
+   ```bash
+   KEY="~/Descargas/labsuser.pem"
+   ssh -i "$KEY" ubuntu@<MASTER_PUB> 'nohup bash ~/Final-Big-Data-AWS/aws/arrancar-master.sh > ~/master.log 2>&1 &'
+   # esperar ~50s (sin descargas: Kafka/Spark ya están)
+   ssh -i "$KEY" ubuntu@<WORKER1_PUB> 'bash ~/Final-Big-Data-AWS/aws/arrancar-worker.sh 172.31.39.239'
+   ssh -i "$KEY" ubuntu@<WORKER2_PUB> 'bash ~/Final-Big-Data-AWS/aws/arrancar-worker.sh 172.31.39.239'
+   ssh -i "$KEY" ubuntu@<MASTER_PUB> 'bash ~/Final-Big-Data-AWS/aws/lanzar-jobs.sh'
+   # dashboard: http://<MASTER_PUB>:5000
+   ```
+
+> **Recomendación:** para re-usar rápido, **DETÉN** (Stop) las instancias al terminar — NO las
+> termines. Detenidas casi no cuestan (solo el disco). Solo **Terminate** si ya no las usarás más.
