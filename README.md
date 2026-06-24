@@ -24,7 +24,7 @@ Final-Big-Data-AWS/
 │   ├── data/corpus_real.jsonl ← datos REALES (Twitter/Reddit/noticias Perú)
 │   └── docker-compose.cluster.yml ← Kafka (KRaft) + Redis para el master
 └── aws/                     ← capa de despliegue en EC2 (lo nuevo de esta versión)
-    ├── GUIA-AWS-ACADEMY.md  ← 👉 EMPIEZA AQUÍ: guía clic a clic para AWS Academy
+    ├── GUIA-AWS-ACADEMY.md  ←  EMPIEZA AQUÍ: guía clic a clic para AWS Academy
     ├── setup.sh             ← instala todo en cada instancia (Java/Python/Flink/Spark/Docker)
     ├── arrancar-master.sh   ← arranca el nodo master
     ├── arrancar-worker.sh   ← arranca un nodo worker (se une al master)

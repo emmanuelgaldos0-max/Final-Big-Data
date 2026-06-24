@@ -1,0 +1,57 @@
+digraph pipeline {
+  rankdir=LR;
+  bgcolor="#0f1117";
+  fontname="Helvetica";
+  labelloc="t";
+  fontcolor="#e6edf3";
+  fontsize=22;
+  label="Arquitectura del pipeline — Deteccion de discurso de odio (tiempo real)";
+  node [fontname="Helvetica", shape=box, style="filled,rounded", fontcolor="white", fontsize=13, penwidth=0];
+  edge [color="#8b94a7", fontname="Helvetica", fontsize=10, fontcolor="#b9c2d0", penwidth=1.6, arrowsize=0.8];
+
+  // ---- Fuentes ----
+  subgraph cluster_src {
+    label="DATOS REALES (datasets publicos)"; fontcolor="#8b94a7"; color="#2a3142"; style="rounded"; fontsize=12;
+    src [label="Twitter Peru · Reddit r/peru\nNoticias Peru · HateCheck ES\n16,639 textos reales", fillcolor="#39414f", shape=note];
+  }
+
+  prod [label="PRODUCTOR\nreplay del corpus\n~200 msg/s", fillcolor="#5b6479"];
+
+  // ---- Kafka ----
+  subgraph cluster_kafka {
+    label="APACHE KAFKA  (ingesta / bus de mensajes)"; fontcolor="#ffb454"; color="#5a4326"; style="rounded"; fontsize=13;
+    kraw [label="topics:\nraw-tweets · raw-comments", fillcolor="#d98324"];
+    kcls [label="topic:\nclassified-hate", fillcolor="#d98324"];
+  }
+
+  // ---- Flink ----
+  subgraph cluster_flink {
+    label="APACHE FLINK  (streaming · tiempo real)"; fontcolor="#ff5d8f"; color="#5a2a40"; style="rounded"; fontsize=13;
+    nlp [label="NLP lexico/regex\n(odio · terruqueo ·\ndiscriminacion · politico)", fillcolor="#3fdd97", fontcolor="#0f1117"];
+    flink [label="5 JOBS STREAMING\n1 deteccion · 2 ventana 60s\n3 latencia · 4 alertas\n5 temas politicos", fillcolor="#e84393"];
+  }
+
+  // ---- Redis + Dashboard ----
+  redis [label="REDIS\nmetricas en vivo\n(contadores, feed,\nlatencia, temas)", fillcolor="#ff5d5d"];
+  dash  [label="DASHBOARD\nFlask + Chart.js\ntiempo real :5000", fillcolor="#7c5cff"];
+
+  // ---- Spark ----
+  subgraph cluster_spark {
+    label="APACHE SPARK  (batch · analisis del corpus completo)"; fontcolor="#ff9d54"; color="#5a4326"; style="rounded"; fontsize=13;
+    spark [label="5 JOBS BATCH\n1 historico · 2 TF-IDF\n3 grafo · 4 sentimiento/partido\n5 perfilado usuarios", fillcolor="#e8590c"];
+    reports [label="reportes JSON\ndata/reports/*", fillcolor="#39414f", shape=note];
+  }
+
+  // ---- Flujo ----
+  src -> prod;
+  prod -> kraw [label="JSON"];
+  kraw -> flink [label="consume"];
+  flink -> nlp [label="clasifica", dir=both, color="#3fdd97"];
+  flink -> redis [label="metricas\npor evento"];
+  flink -> kcls [label="enriquecido"];
+  redis -> dash [label="API /metrics\n/timeline /cluster"];
+  kcls -> spark [label="lee todo\nel historico"];
+  spark -> reports;
+
+  { rank=same; redis; }
+}

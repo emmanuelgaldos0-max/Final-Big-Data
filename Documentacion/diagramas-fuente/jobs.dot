@@ -1,0 +1,35 @@
+digraph jobs {
+  rankdir=TB;
+  bgcolor="#0f1117";
+  fontname="Helvetica";
+  labelloc="t";
+  fontcolor="#e6edf3";
+  fontsize=22;
+  label="Los 10 jobs — 5 streaming (Flink) + 5 batch (Spark)";
+  node [fontname="Helvetica", shape=box, style="filled,rounded", fontcolor="white", fontsize=11, penwidth=0, width=3.4];
+  edge [style=invis];
+
+  // ---- FLINK (streaming) ----
+  subgraph cluster_flink {
+    label="APACHE FLINK — STREAMING (tiempo real, por evento)";
+    fontcolor="#ff5d8f"; color="#5a2a40"; style="rounded"; penwidth=2; fontsize=15;
+    f1 [label="Job 1 · Detector de odio\nQUE: clasifica cada mensaje (odio/terruqueo/\ndiscriminacion) con NLP\nSALE: classified-hate + Redis + JSONL", fillcolor="#e84393"];
+    f2 [label="Job 2 · Contador ventana 60s\nQUE: tendencias por tipo en ventana deslizante\nPOR QUE FLINK: ventana event-time en vivo", fillcolor="#e84393"];
+    f3 [label="Job 3 · Monitor de latencia\nQUE: latencia extremo-a-extremo y SLA\nPOR QUE FLINK: metrica de tiempo real", fillcolor="#e84393"];
+    f4 [label="Job 4 · Sistema de alertas\nQUE: detecta rafagas de contenido toxico\nPOR QUE FLINK: tumbling window + disparo", fillcolor="#e84393"];
+    f5 [label="Job 5 · Clasificador de temas\nQUE: economia/seguridad/corrupcion/politica\nPOR QUE FLINK: enriquece el stream al vuelo", fillcolor="#e84393"];
+    f1 -> f2 -> f3 -> f4 -> f5;
+  }
+
+  // ---- SPARK (batch) ----
+  subgraph cluster_spark {
+    label="APACHE SPARK — BATCH (sobre TODO el corpus en reposo)";
+    fontcolor="#ff9d54"; color="#5a4326"; style="rounded"; penwidth=2; fontsize=15;
+    s1 [label="Job 1 · Analisis historico\nQUE: agregaciones globales del corpus\nPOR QUE SPARK: groupBy distribuido", fillcolor="#e8590c"];
+    s2 [label="Job 2 · TF-IDF keywords\nQUE: palabras caracteristicas del odio\nPOR QUE SPARK: ML (MLlib), IDF global", fillcolor="#e8590c"];
+    s3 [label="Job 3 · Grafo de co-ocurrencia\nQUE: red de terminos discriminatorios\nPOR QUE SPARK: explode + agregacion grafo", fillcolor="#e8590c"];
+    s4 [label="Job 4 · Sentimiento por partido\nQUE: toxicidad por candidato/partido\nPOR QUE SPARK: Spark SQL, agregaciones", fillcolor="#e8590c"];
+    s5 [label="Job 5 · Perfilado de usuarios\nQUE: autores reincidentes (alto riesgo)\nPOR QUE SPARK: window functions (rank)", fillcolor="#e8590c"];
+    s1 -> s2 -> s3 -> s4 -> s5;
+  }
+}

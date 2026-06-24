@@ -1,0 +1,51 @@
+digraph topologia {
+  rankdir=TB;
+  bgcolor="#0f1117";
+  fontname="Helvetica";
+  labelloc="t";
+  fontcolor="#e6edf3";
+  fontsize=22;
+  label="Topologia del cluster — 3 nodos (1 master + 2 workers)";
+  node [fontname="Helvetica", shape=box, style="filled,rounded", fontcolor="white", fontsize=12, penwidth=0];
+  edge [fontname="Helvetica", fontsize=10, fontcolor="#b9c2d0", penwidth=1.8, arrowsize=0.8];
+
+  // ---- MASTER ----
+  subgraph cluster_master {
+    label="NODO 1 — MASTER  (coordina · ingiere · sirve)";
+    fontcolor="#7c5cff"; color="#4b3a99"; style="rounded"; penwidth=2; fontsize=14;
+    kafka [label="Kafka\n(bus de mensajes)", fillcolor="#d98324"];
+    redis [label="Redis\n(metricas en vivo)", fillcolor="#ff5d5d"];
+    jm    [label="Flink JobManager\n(reparte los jobs)", fillcolor="#e84393"];
+    sm    [label="Spark Master\n(coordina batch)", fillcolor="#e8590c"];
+    dash  [label="Dashboard :5000", fillcolor="#7c5cff"];
+    prod  [label="Productor\n(corpus real)", fillcolor="#5b6479"];
+  }
+
+  // ---- WORKER 1 ----
+  subgraph cluster_w1 {
+    label="NODO 2 — WORKER  (computa)";
+    fontcolor="#3fdd97"; color="#2a6a4a"; style="rounded"; penwidth=2; fontsize=14;
+    tm1 [label="Flink TaskManager\n4 slots", fillcolor="#e84393"];
+    sw1 [label="Spark Worker", fillcolor="#e8590c"];
+  }
+
+  // ---- WORKER 2 ----
+  subgraph cluster_w2 {
+    label="NODO 3 — WORKER  (computa)";
+    fontcolor="#3fdd97"; color="#2a6a4a"; style="rounded"; penwidth=2; fontsize=14;
+    tm2 [label="Flink TaskManager\n4 slots", fillcolor="#e84393"];
+    sw2 [label="Spark Worker", fillcolor="#e8590c"];
+  }
+
+  // ---- Conexiones ----
+  jm -> tm1 [label="subtareas", color="#e84393"];
+  jm -> tm2 [label="subtareas", color="#e84393"];
+  sm -> sw1 [label="executors", color="#e8590c"];
+  sm -> sw2 [label="executors", color="#e8590c"];
+  tm1 -> kafka [label="consume", color="#d98324", style=dashed, constraint=false];
+  tm2 -> kafka [label="consume", color="#d98324", style=dashed, constraint=false];
+  tm1 -> redis [label="escribe", color="#ff5d5d", style=dashed, constraint=false];
+  tm2 -> redis [label="escribe", color="#ff5d5d", style=dashed, constraint=false];
+
+  labelloc="b";
+}
