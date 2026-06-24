@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# setup.sh  —  Instalador universal del cluster en AWS EC2 (Ubuntu 22.04)
+# setup.sh  —  Instalador universal del cluster en AWS EC2 (Ubuntu 22.04 o 24.04)
 # -----------------------------------------------------------------------------
 # Se corre UNA vez en CADA instancia (master y los 2 workers). Es idéntico en las
 # tres: instala Java 11, Python 3.10 (nativo en Ubuntu 22.04), Docker, y descarga
@@ -41,8 +41,17 @@ fi
 echo ""; echo "### 1/5  Paquetes del sistema (Java 11, Python 3.10, Docker) ###"
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-    openjdk-11-jdk python3.10 python3.10-venv python3-pip \
-    docker.io unzip curl wget >/dev/null
+    software-properties-common ca-certificates unzip curl wget >/dev/null
+# Python 3.10: nativo en Ubuntu 22.04; en 24.04 (Python 3.12) lo traemos del PPA
+# deadsnakes, porque PyFlink 1.19 NO soporta 3.12. Así el setup sirve en ambas.
+if ! apt-cache show python3.10 >/dev/null 2>&1; then
+  echo "    python3.10 no está en los repos -> agrego PPA deadsnakes"
+  sudo add-apt-repository -y ppa:deadsnakes/ppa >/dev/null 2>&1
+  sudo apt-get update -qq
+fi
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+    openjdk-11-jdk python3.10 python3.10-venv python3.10-dev python3-pip \
+    docker.io >/dev/null
 sudo systemctl enable --now docker >/dev/null 2>&1 || true
 sudo usermod -aG docker "$USER" || true     # para usar docker sin sudo (tras re-login)
 
