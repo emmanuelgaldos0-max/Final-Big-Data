@@ -42,16 +42,13 @@ echo ""; echo "### 1/5  Paquetes del sistema (Java 11, Python 3.10, Docker) ###"
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
     software-properties-common ca-certificates unzip curl wget >/dev/null
-# Python 3.10: nativo en Ubuntu 22.04; en 24.04 (Python 3.12) lo traemos del PPA
-# deadsnakes, porque PyFlink 1.19 NO soporta 3.12. Así el setup sirve en ambas.
-if ! apt-cache show python3.10 >/dev/null 2>&1; then
-  echo "    python3.10 no está en los repos -> agrego PPA deadsnakes"
-  sudo add-apt-repository -y ppa:deadsnakes/ppa >/dev/null 2>&1
-  sudo apt-get update -qq
-fi
+# Python 3.10 (PyFlink 1.19 NO soporta el 3.12 de Ubuntu 24.04). El PPA deadsnakes lo
+# provee tanto en 22.04 como en 24.04; agregarlo es inofensivo si ya estaba.
+sudo add-apt-repository -y ppa:deadsnakes/ppa >/dev/null 2>&1 || true
+sudo apt-get update -qq
 # Sin Docker: Kafka y Redis corren NATIVOS en el master (los instala arrancar-master.sh).
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-    openjdk-11-jdk python3.10 python3.10-venv python3.10-dev python3-pip >/dev/null
+    openjdk-11-jdk python3.10 python3.10-venv python3-pip >/dev/null
 
 JAVA_HOME_DIR="/usr/lib/jvm/java-11-openjdk-amd64"
 echo "    Java: $($JAVA_HOME_DIR/bin/java -version 2>&1 | head -1)"
