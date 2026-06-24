@@ -17,7 +17,7 @@ de AWS. Está pensada para el **Learner Lab de AWS Academy**.
                  │  VPC por defecto · Security Group "bigdata-sg"│
                  │                                               │
    tú (laptop) ──┼──► MASTER  (EC2 #1, t3.large)                 │
-   navegador/SSH │      Kafka + Redis (Docker)                   │
+   navegador/SSH │      Kafka + Redis (nativos)                   │
                  │      Flink JobManager · Spark Master          │
                  │      Dashboard (5000) · Productor             │
                  │            ▲              ▲                    │
@@ -42,7 +42,7 @@ Spark. Así "1 master + 2 workers" queda justificado.
   te da créditos (normalmente 50–100 USD); una demo de 1–2 h gasta centavos.
   **⚠️ Al terminar, haz STOP o TERMINATE de las 3 instancias** (ver §10) o seguirán gastando.
 - **Región:** el Learner Lab casi siempre te obliga a **`us-east-1`** (N. Virginia). Déjalo así.
-- **Sistema operativo:** usamos **Ubuntu Server 22.04 LTS** (trae Python 3.10 nativo, justo el
+- **Sistema operativo:** usamos **Ubuntu Server 24.04 LTS** (el setup.sh instala Python 3.10 solo, que es el
   que necesita el proyecto — esto elimina el problema de versiones de Python entre nodos).
 
 ---
@@ -84,12 +84,14 @@ Esto define quién puede hablar con quién. Lo creamos **una vez**.
    |-----------------|------------|-----------------------|----------|
    | SSH             | 22         | **My IP**             | entrar tú por SSH |
    | Custom TCP      | 5000       | **My IP**             | ver el dashboard en tu navegador |
-   | All traffic     | (todo)     | **esta misma SG**     | que las 3 EC2 se hablen entre sí |
+   | All traffic     | (todo)     | **Custom `172.31.0.0/16`** | que las 3 EC2 se hablen entre sí |
 
-   - Para la 3.ª regla: en **Type** elige `All traffic`; en **Source** elige `Custom` y en el
-     buscador selecciona **el propio `bigdata-sg`** (empieza con `sg-...`). Esto permite todo el
-     tráfico *interno* del cluster (Kafka 9092, Flink 6123/8081, Spark 7077/8080, Redis 6379…)
-     sin abrir nada a internet.
+   - Para la 4.ª regla: en **Type** elige `All traffic`; en **Source** elige `Custom` y escribe
+     **`172.31.0.0/16`** (el CIDR de la VPC). Esto permite todo el tráfico *interno* del cluster
+     (Kafka 9092, Flink 6123/8081, Spark 7077/8080, Redis 6379…) entre las 3 EC2.
+     > ⚠️ **NO uses "el propio SG" como origen** — al crear el SG ese auto-referencia suele quedar
+     > apuntando a otro grupo y el tráfico entre nodos queda BLOQUEADO (solo SSH abierto). Usa el CIDR.
+     > Y OJO: AWS no deja mezclar un CIDR con un grupo en la misma regla; debe ser una regla aparte.
    - (Opcional) si quieres ver las UIs de Flink/Spark desde tu navegador, agrega también
      `Custom TCP 8081` y `Custom TCP 8080` con Source **My IP**.
 4. **Create security group**.
@@ -102,7 +104,7 @@ Las 3 son iguales. Repite estos pasos **3 veces** (o lanza 1 y usa "Launch more 
 
 1. EC2 → **Instances** → **Launch instances**.
 2. **Name:** `bigdata-master` (luego `bigdata-worker-1`, `bigdata-worker-2`).
-3. **Application and OS Images:** elige **Ubuntu** → **Ubuntu Server 22.04 LTS** (64-bit x86).
+3. **Application and OS Images:** elige **Ubuntu** → **Ubuntu Server 24.04 LTS** (64-bit x86, free tier, sin SQL Server).
 4. **Instance type:** **`t3.large`**.
 5. **Key pair:** elige **`vockey`** (el que ya existe).
 6. **Network settings** → **Edit** → en **Firewall (security groups)** elige
@@ -162,7 +164,7 @@ En CADA instancia (master y los 2 workers), corre lo mismo:
 bash ~/Final-Big-Data-AWS/aws/setup.sh
 ```
 
-Esto instala Java 11, Python 3.10, Docker, descarga Flink 1.19.1 y Spark 3.5.1, el conector
+Esto instala Java 11, Python 3.10 (deadsnakes), descarga Flink 1.19.1 y Spark 3.5.1, el conector
 Kafka y crea el entorno Python. Tarda varios minutos (descarga ~600 MB). Es **idempotente**:
 si algo falla, vuelve a correrlo.
 
