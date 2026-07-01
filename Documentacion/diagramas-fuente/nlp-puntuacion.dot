@@ -1,0 +1,37 @@
+digraph puntuacion {
+  rankdir=LR;
+  bgcolor="#0f1117";
+  fontname="Helvetica";
+  labelloc="t";
+  fontcolor="#e6edf3";
+  fontsize=22;
+  label="Como clasifica el NLP — palabras predefinidas → coincidencia → puntuacion";
+  node [fontname="Helvetica", shape=box, style="filled,rounded", fontcolor="white", fontsize=12, penwidth=0];
+  edge [color="#8b94a7", fontname="Helvetica", fontsize=10, fontcolor="#b9c2d0", penwidth=1.6, arrowsize=0.85];
+
+  // ---- Diccionarios predefinidos (hechos a mano) ----
+  subgraph cluster_dic {
+    label="1 · DICCIONARIOS PREDEFINIDOS (hechos a mano, contexto Peru)";
+    fontcolor="#3fdd97"; color="#234f3a"; style="rounded"; fontsize=13;
+    d_odio [label="ODIO\ncholo · serrano ·\nfeminazi · chusma", fillcolor="#2f9e6f"];
+    d_terr [label="TERRUQUEO (regex)\nterruco · comunista ·\ncaviar · senderista", fillcolor="#2f9e6f"];
+    d_disc [label="DISCRIMINACION\nracial · genero ·\nclase · regional", fillcolor="#2f9e6f"];
+  }
+
+  // ---- Texto entrante ----
+  texto [label="TEXTO\n\"ese serrano comunista,\nterruco de mierda\"", fillcolor="#5b6479", shape=note, fontsize=13];
+
+  // ---- Coincidencia ----
+  match [label="2 · ¿COINCIDE?\nbusca cada palabra COMPLETA (\\b)\n\n✓ serrano  (odio + racial)\n✓ comunista (terruqueo)\n✓ terruco  (terruqueo)", fillcolor="#d98324", fontsize=12];
+
+  // ---- Puntuacion ----
+  score [label="3 · PUNTUA (pesos fijos)\n0.4 · odio\n+ 0.3 · terruqueo\n+ 0.2 · (tipos discrim / 4)\n+ 0.1 · sentimiento negativo\n= 0.82", fillcolor="#ff5d5d", fontsize=12];
+
+  // ---- Clasificacion ----
+  clasi [label="4 · CLASIFICA\ntoxicity_score = 0.82\n> 0.5  →  MARCADO\n(needs_review = si)", fillcolor="#e84393", shape=note, fontsize=13];
+
+  d_odio -> match; d_terr -> match; d_disc -> match;
+  texto -> match [label="se limpia\n(minusculas,\nsin tildes)"];
+  match -> score [label="por cada\ncoincidencia\nsuma puntos"];
+  score -> clasi;
+}

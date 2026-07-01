@@ -8,6 +8,7 @@ import os
 import time
 import random
 import socket
+import subprocess
 import urllib.request
 from datetime import datetime, timezone
 from flask import Flask, jsonify, render_template, request, Response
@@ -21,6 +22,16 @@ FLINK_REST = os.environ.get("FLINK_REST", "http://localhost:8081")
 SPARK_UI = os.environ.get("SPARK_UI", "http://localhost:8080")
 # IP del master (la publica arrancar-cluster); por defecto se autodetecta.
 MASTER_IP = os.environ.get("MASTER_IP", "")
+# Carpeta donde los jobs batch de Spark escriben sus reportes JSON (data/reports/).
+REPORTS_PATH = os.environ.get(
+    "REPORTS_PATH",
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "reports")),
+)
+# Script que ejecuta UNA pasada de los 5 jobs batch (para el botón "Generar ahora").
+BATCH_SCRIPT = os.environ.get(
+    "BATCH_SCRIPT",
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "aws", "lanzar-batch.sh")),
+)
 
 
 def _http_json(url, timeout=2.5):
@@ -249,6 +260,99 @@ def api_stream():
 
     return Response(event_generator(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+def _read_report(name):
+    """Lee un reporte JSON de data/reports/. Devuelve dict o None."""
+    try:
+        with open(os.path.join(REPORTS_PATH, name), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+@app.route("/api/batch")
+def api_batch():
+    """
+    Resultados de la capa BATCH (Spark). Lee los reportes JSON que generan los 5 jobs
+    Spark (escritos en data/reports/) y el estado del planificador (_batch_status.json,
+    que escribe aws/lanzar-batch.sh en cada corrida). Permite ver en el dashboard que la
+    capa batch SE ESTA EJECUTANDO periodicamente y QUE produce, no solo la de streaming.
+    """
+    status = _read_report("_batch_status.json") or {}
+
+    historical = _read_report("historical_hate_report.json")
+    tfidf = _read_report("tfidf_keywords.json")
+    graph = _read_report("cooccurrence_graph.json")
+    sentiment = _read_report("sentiment_by_party.json")
+    users = _read_report("user_profiles.json")
+
+    # Resumen compacto por reporte (lo que el panel del dashboard necesita).
+    reports = {
+        "historical": None if not historical else {
+            "data_source": historical.get("data_source"),
+            "total_records": historical.get("total_records", 0),
+            "hate_total": historical.get("hate_speech_total", 0),
+            "terruco_total": historical.get("terruco_total", 0),
+            "avg_toxicity": round(historical.get("avg_toxicity_global", 0) or 0, 3),
+            "by_source": historical.get("by_source", []),
+        },
+        "tfidf": None if not tfidf else {
+            "data_source": tfidf.get("data_source"),
+            "hate_docs": tfidf.get("hate_docs", 0),
+            "keywords": (tfidf.get("top_hate_keywords", []) or [])[:18],
+        },
+        "graph": None if not graph else {
+            "data_source": graph.get("data_source"),
+            "n_nodes": len(graph.get("nodes", []) or []),
+            "n_edges": len(graph.get("edges", []) or []),
+            "top_edges": sorted(
+                (graph.get("edges", []) or []),
+                key=lambda e: e.get("count", 0), reverse=True)[:8],
+        },
+        "sentiment": None if not sentiment else {
+            "data_source": sentiment.get("data_source"),
+            "total_mentions": sentiment.get("total_mentions", 0),
+            "parties": sentiment.get("parties", []),
+        },
+        "users": None if not users else {
+            "data_source": users.get("data_source"),
+            "total_users": users.get("total_users_analyzed", 0),
+            "top_risky": (users.get("high_risk_users", []) or [])[:10],
+        },
+    }
+    ran = sum(1 for v in reports.values() if v is not None)
+    return jsonify({
+        "status": status,
+        "reports": reports,
+        "reports_ran": ran,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+@app.route("/api/batch/run", methods=["POST"])
+def api_batch_run():
+    """
+    Dispara UNA pasada inmediata de los 5 jobs batch (boton 'Generar ahora' del dashboard).
+    Lanza aws/lanzar-batch.sh en segundo plano (desacoplado) y vuelve al instante. Si ya hay
+    una corrida en curso, no lanza otra (evita que se pisen los reportes).
+    """
+    status = _read_report("_batch_status.json") or {}
+    if status.get("running"):
+        return jsonify({"started": False, "reason": "running"})
+    if not os.path.exists(BATCH_SCRIPT):
+        return jsonify({"started": False, "reason": "script-not-found", "path": BATCH_SCRIPT})
+    try:
+        env = {**os.environ, "BATCH_INTERVAL_MIN": str(status.get("interval_min") or 10)}
+        with open("/tmp/batch_manual.log", "w") as log:
+            subprocess.Popen(
+                ["bash", BATCH_SCRIPT],
+                env=env, stdout=log, stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        return jsonify({"started": True})
+    except Exception as exc:
+        return jsonify({"started": False, "reason": str(exc)})
 
 
 @app.route("/api/cluster")

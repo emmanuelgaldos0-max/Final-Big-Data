@@ -1,0 +1,32 @@
+digraph ejemplo {
+  rankdir=LR;
+  bgcolor="#0f1117";
+  fontname="Helvetica";
+  labelloc="t";
+  fontcolor="#e6edf3";
+  fontsize=22;
+  label="Ejemplo real recorriendo el NLP — un tweet peruano clasificado paso a paso";
+  node [fontname="Helvetica", shape=box, style="filled,rounded", fontcolor="white", fontsize=12, penwidth=0];
+  edge [color="#8b94a7", fontname="Helvetica", fontsize=10, fontcolor="#b9c2d0", penwidth=1.6, arrowsize=0.8];
+
+  in [label="ENTRADA (twitter)\n\"Este serrano comunista quiere\nexpropiar todo, terruco de mierda\"", fillcolor="#5b6479", shape=note, fontsize=13];
+
+  subgraph cluster_det {
+    label="DETECCIONES (6 tecnicas en paralelo)";
+    fontcolor="#ff5d8f"; color="#5a2a40"; style="rounded"; fontsize=13;
+    odio  [label="Odio: SI\nhate_words = [serrano,\nterruco, comunista]", fillcolor="#e84393"];
+    terr  [label="Terruqueo: SI\nmatches = [terruco, comunista]", fillcolor="#e84393"];
+    sent  [label="Sentimiento: NEGATIVO\nscore = -0.222\n(detecta 'mierda')", fillcolor="#e84393"];
+    pol   [label="Politica: IZQUIERDA\nizq=1 (expropiar) der=0\nindice polarizacion = 1.0", fillcolor="#e84393"];
+    disc  [label="Discriminacion:\nracial + regional\n('serrano')", fillcolor="#e84393"];
+  }
+
+  formula [label="SCORE DE TOXICIDAD\n0.4*1 (odio)\n+ 0.3*1 (terruqueo)\n+ 0.2*(2/4) (discrim)\n+ 0.1*0.222 (sent. neg)\n= 0.822", fillcolor="#ff5d5d", fontsize=12];
+
+  out [label="RESULTADO\ntoxicity_score = 0.822\nneeds_review = TRUE\n(supera el umbral 0.5)", fillcolor="#39414f", shape=note, fontsize=13];
+
+  in -> odio; in -> terr; in -> sent; in -> pol; in -> disc;
+  odio -> formula; terr -> formula; sent -> formula; disc -> formula;
+  pol -> out [style=dashed, label="enriquece"];
+  formula -> out;
+}

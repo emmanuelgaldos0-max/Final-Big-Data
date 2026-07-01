@@ -2,35 +2,32 @@
 
 ## Arquitectura del Cluster
 
-### Nodo Master (t3.xlarge — 4 vCPU, 16 GB RAM)
-**Rol**: Coordinación general y servicios de control
-- **Zookeeper**: Coordinación de Kafka (puerto 2181)
-- **Kafka Broker líder** (broker.id=0, puerto 9092): Gestiona la distribución de topics
-- **Flink JobManager** (puerto 8081): Planifica y distribuye jobs de streaming
-- **Spark Master** (puerto 8080): Asigna tareas batch a los workers
-- **Flask Dashboard** (puerto 5000): Sirve el panel web con resultados
-- **Productores Kafka**: Inyectan datos desde APIs y datasets
+> Despliegue real: **3 instancias EC2 `t3.large`** (2 vCPU, 8 GB) en AWS Academy, Ubuntu 24.04,
+> todo **nativo** (sin Docker). Kafka corre en modo **KRaft** (sin Zookeeper).
 
-**Justificación**: El master no procesa datos pesados, solo coordina. Necesita 16GB RAM
-para correr simultáneamente Zookeeper, Kafka, Flink JobManager y Spark Master sin swap.
+### Nodo Master (t3.large — 2 vCPU, 8 GB RAM)
+**Rol**: Coordinación general y servicios de control. **No hace cómputo pesado.**
+- **Kafka (KRaft)** (puerto 9092, controller 9093): bus de mensajes; único broker (node.id=1)
+- **Redis** (puerto 6379): almacén in-memory de métricas que consume el dashboard
+- **Flink JobManager** (puerto 8081): planifica y reparte las subtareas de los jobs streaming
+- **Spark Master** (puerto 7077, UI 8080): coordina y lanza los executors batch en los workers
+- **Flask Dashboard** (puerto 5000): sirve el panel web con resultados
+- **Productor Kafka**: inyecta el corpus real a alto volumen
 
-### Worker 1 (t3.large — 2 vCPU, 8 GB RAM)
-**Rol**: Procesamiento de streaming en tiempo real
-- **Kafka Broker réplica** (broker.id=1): Replicación de mensajes para tolerancia a fallos
-- **Flink TaskManager** (4 task slots): Ejecuta los 5 jobs de streaming paralelos
+**Justificación**: el master centraliza la coordinación y sirve el dashboard; los datos pesados
+los procesan los workers. Kafka y Redis viven aquí (centralizados) para que cualquier worker los
+alcance por la red privada de la VPC.
 
-**Justificación**: Dedicado a Flink garantiza baja latencia en el procesamiento de eventos.
-Aislar Flink en su propio nodo evita interferencia con jobs Spark que usan CPU/RAM intensivo.
+### Worker 1 y Worker 2 (t3.large — 2 vCPU, 8 GB RAM cada uno)
+**Rol**: cómputo distribuido. **Los dos nodos son idénticos y simétricos** — no hay especialización
+por nodo: cada worker corre a la vez los dos motores de procesamiento.
+- **Flink TaskManager** (4 task slots): ejecuta subtareas de los 5 jobs streaming
+- **Spark Worker**: ejecuta executors de los 5 jobs batch
 
-### Worker 2 (t3.large — 2 vCPU, 8 GB RAM)
-**Rol**: Procesamiento batch y almacenamiento de resultados
-- **Kafka Broker réplica** (broker.id=2): Segunda réplica para alta disponibilidad
-- **Spark Worker** (2 cores, 4GB RAM): Ejecuta los 5 jobs batch programados
-- **Redis** (puerto 6379): Almacenamiento in-memory de resultados para el Dashboard
-
-**Justificación**: Spark batch consume RAM intensivamente durante la ejecución.
-Redis en el mismo nodo que Spark permite que los jobs escriban resultados localmente
-con latencia mínima antes de que el dashboard los lea desde el master.
+**Justificación**: con 2 workers hay **8 slots Flink** (4+4) y executors Spark en 2 máquinas, así el
+trabajo se divide de verdad entre nodos. Quién procesa qué lo deciden **dinámicamente** Flink (reparte
+subtareas, con `evenly-spread-out-slots` para balancear) y Spark (reparte particiones a los executors);
+NO se asigna streaming a un nodo y batch al otro. Ambos workers participan en ambas cargas.
 
 ---
 
@@ -44,20 +41,21 @@ con latencia mínima antes de que el dashboard los lea desde el master.
                             │ producer_dataset.py / producer_reddit.py
                             ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      APACHE KAFKA (Broker Cluster)                   │
-│   Topic: raw-tweets (3 particiones, RF=2)                           │
-│   Topic: raw-comments (3 particiones, RF=2)                         │
-│   Topic: classified-hate (3 particiones, RF=2)                      │
-│   Topic: alerts (1 partición, RF=1)                                 │
-│   Topic: metrics (1 partición, RF=1)                                │
+│                 APACHE KAFKA (KRaft, 1 broker en el master)          │
+│   Topic: raw-tweets (3 particiones, RF=1)                           │
+│   Topic: raw-comments (3 particiones, RF=1)                         │
+│   Topic: classified-hate (3 particiones, RF=1)                      │
+│   Topic: alerts (3 particiones, RF=1)                               │
+│   Topic: metrics (3 particiones, RF=1)                              │
 └──────────────────┬──────────────────────────────────────────────────┘
-                   │
+                   │   (ambos workers consumen y computan ambas cargas)
         ┌──────────┴──────────┐
         ▼                     ▼
 ┌───────────────┐   ┌─────────────────┐
 │ APACHE FLINK  │   │  APACHE SPARK   │
-│ (Streaming)   │   │  (Batch)        │
-│               │   │                 │
+│ (streaming)   │   │  (batch)        │
+│ TaskManagers  │   │  Workers        │
+│ en W1 y W2    │   │  en W1 y W2     │
 │ Job1: Hate    │   │ Job1: Histórico │
 │ Job2: Window  │   │ Job2: TF-IDF    │
 │ Job3: Latency │   │ Job3: Graph     │

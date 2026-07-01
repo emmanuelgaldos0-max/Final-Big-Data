@@ -92,21 +92,27 @@ python data/fetch_real_datasets.py        # -> data/corpus_real.jsonl
 
 | Nodo | Tipo EC2 | Rol | Servicios |
 |------|----------|-----|-----------|
-| Master | t3.xlarge (4 vCPU, 16 GB) | Coordinación | Kafka (broker líder), Zookeeper, Flink JobManager, Spark Master, Dashboard |
-| Worker 1 | t3.large (2 vCPU, 8 GB) | Procesamiento streaming | Flink TaskManager, Kafka (broker réplica) |
-| Worker 2 | t3.large (2 vCPU, 8 GB) | Procesamiento batch | Spark Worker, Kafka (broker réplica), Redis |
+| Master | t3.large (2 vCPU, 8 GB) | Coordinación · ingesta · sirve | Kafka (KRaft, único broker), Redis, Flink JobManager, Spark Master, Dashboard, Productor |
+| Worker 1 | t3.large (2 vCPU, 8 GB) | Cómputo | Flink TaskManager (4 slots), Spark Worker |
+| Worker 2 | t3.large (2 vCPU, 8 GB) | Cómputo | Flink TaskManager (4 slots), Spark Worker |
 
-**Justificación**: El master centraliza la coordinación sin procesar datos pesados. Los workers se especializan: Worker 1 para baja latencia (Flink), Worker 2 para procesamiento batch (Spark). Redis en Worker 2 almacena resultados intermedios que consume el Dashboard.
+**Justificación**: El master centraliza la coordinación (JobManager + Spark Master), la ingesta (Kafka) y el servicio (Redis + dashboard) **sin procesar datos pesados**. Los **dos workers son idénticos y simétricos**: cada uno corre a la vez un Flink TaskManager y un Spark Worker, aportando **8 slots Flink** (4+4) y executors Spark. **No hay especialización por nodo** — Flink y Spark reparten el trabajo dinámicamente entre ambos workers (no se dedica un nodo a streaming y otro a batch). Kafka y Redis viven en el master (centralizados) para que cualquier worker los alcance por la red privada.
 
 ---
 
 ## 🚀 Instalación desde Cero
 
+> ⚠️ **Esta sección es una referencia MANUAL/legacy** (instala paso a paso, con Kafka sobre
+> Zookeeper). **La vía real y recomendada** del proyecto está automatizada en
+> [`aws/`](../aws/): `setup.sh` instala todo nativo (sin Docker) y arranca Kafka en modo
+> **KRaft (sin Zookeeper)**. Ver **[`aws/GUIA-AWS-ACADEMY.md`](../aws/GUIA-AWS-ACADEMY.md)**.
+> Lee lo de abajo solo si quieres entender la instalación a mano.
+
 ### Paso 1: Preparar las instancias EC2
 
 ```bash
 # En AWS Console:
-# 1. Lanzar 3 instancias Ubuntu 22.04 LTS (t3.xlarge para master, t3.large para workers)
+# 1. Lanzar 3 instancias Ubuntu 24.04 LTS (t3.large las tres: 1 master + 2 workers)
 # 2. Mismo Security Group con puertos: 22, 2181, 9092, 8081, 8080, 6123, 5000, 6379
 # 3. Asignar IPs privadas fijas (o usar DNS interno de AWS)
 

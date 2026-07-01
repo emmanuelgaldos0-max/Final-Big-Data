@@ -25,7 +25,7 @@ Final-Big-Data-AWS/
 │   └── docker-compose.cluster.yml ← Kafka (KRaft) + Redis para el master
 └── aws/                     ← capa de despliegue en EC2 (lo nuevo de esta versión)
     ├── GUIA-AWS-ACADEMY.md  ←  EMPIEZA AQUÍ: guía clic a clic para AWS Academy
-    ├── setup.sh             ← instala todo en cada instancia (Java/Python/Flink/Spark/Docker)
+    ├── setup.sh             ← instala todo en cada instancia (Java 11/Python 3.10/Flink/Spark, nativo)
     ├── arrancar-master.sh   ← arranca el nodo master
     ├── arrancar-worker.sh   ← arranca un nodo worker (se une al master)
     ├── lanzar-jobs.sh       ← somete los 5 jobs Flink + productor (en el master)
@@ -42,7 +42,7 @@ experiencia previa en AWS: usa solo la consola web y comandos para copiar y pega
 Resumen ultra-corto (detalle en la guía):
 
 ```bash
-# en las 3 instancias EC2 (Ubuntu 22.04, t3.large):
+# en las 3 instancias EC2 (Ubuntu 24.04, t3.large):
 bash ~/Final-Big-Data-AWS/aws/setup.sh
 # master:
 bash ~/Final-Big-Data-AWS/aws/arrancar-master.sh         # imprime su IP privada
@@ -78,9 +78,9 @@ git clone git@github.com:<tu-usuario>/Final-Big-Data-AWS.git ~/Final-Big-Data-AW
 
 | | Físico (PCs) | AWS EC2 (esta carpeta) |
 |---|---|---|
-| Nodos | PC Ubuntu + Mac M4 (+ 3.º) | 3× EC2 `t3.large` Ubuntu 22.04 |
+| Nodos | PC Ubuntu + Mac M4 (+ 3.º) | 3× EC2 `t3.large` Ubuntu 24.04 |
 | IPs | LAN, autodetectadas | IP privada de la VPC |
-| Python entre nodos | riesgo de versiones distintas | **idéntico** (Ubuntu 22.04 = 3.10 en todas) |
+| Python entre nodos | riesgo de versiones distintas | **idéntico** (Python 3.10 vía deadsnakes en las 3) |
 | Kafka advertised | IP LAN | IP privada del master |
 | Acceso dashboard | LAN | IP pública del master (puerto 5000) |
 | Master hace cómputo | sí (también TM) | no: solo coordina; los 2 workers computan |

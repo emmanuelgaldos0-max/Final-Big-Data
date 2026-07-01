@@ -1,0 +1,42 @@
+digraph nlp {
+  rankdir=TB;
+  bgcolor="#0f1117";
+  fontname="Helvetica";
+  labelloc="t";
+  fontcolor="#e6edf3";
+  fontsize=22;
+  label="Como funciona el NLP — lexico/regex contextualizado para Peru (sin ML pesado)";
+  node [fontname="Helvetica", shape=box, style="filled,rounded", fontcolor="white", fontsize=12, penwidth=0];
+  edge [color="#8b94a7", fontname="Helvetica", fontsize=10, fontcolor="#b9c2d0", penwidth=1.6, arrowsize=0.8];
+
+  texto [label="TEXTO CRUDO\n(post de Twitter/Reddit/noticia)", fillcolor="#5b6479", shape=note];
+
+  // ---- Limpieza ----
+  clean [label="clean_text()\nminusculas · quita URLs/@menciones\n#hashtag -> palabra · sin tildes (NFD)\nmatch por PALABRA COMPLETA (\\b)", fillcolor="#3fdd97", fontcolor="#0f1117"];
+
+  // ---- 6 tecnicas ----
+  subgraph cluster_tec {
+    label="6 TECNICAS aplicadas en paralelo  (nlp_pipeline.full_analysis)";
+    fontcolor="#ff5d8f"; color="#5a2a40"; style="rounded"; fontsize=13;
+    t1 [label="1 · Discurso de odio\nlexico HATE_WORDS\n(cholo, serrano, terruco,\nfeminazi, chusma...)", fillcolor="#e84393"];
+    t2 [label="2 · Terruqueo\nregex TERRUCO_PATTERNS\n(terruco, comunista, caviar,\nsenderista, narcoterror)", fillcolor="#e84393"];
+    t3 [label="3 · Sentimiento\nlexico +/- con NEGACIONES\nscore -1..+1\n(neg/neutro/pos)", fillcolor="#e84393"];
+    t4 [label="4 · Polarizacion politica\nkeywords izquierda/derecha\nindice de polarizacion 0..1", fillcolor="#e84393"];
+    t5 [label="5 · Tipo de discriminacion\nracial · genero · clase · regional", fillcolor="#e84393"];
+    t6 [label="6 · Clasificacion de tema\n(Job Flink 5)\neconomia/seguridad/corrupcion...", fillcolor="#e84393"];
+  }
+
+  // ---- Score compuesto ----
+  score [label="SCORE DE TOXICIDAD (0..1)\n0.4*odio + 0.3*terruqueo +\n0.2*(#tipos discrim / 4) +\n0.1*(sentimiento negativo)\n-> needs_review si > 0.5", fillcolor="#ff5d5d"];
+
+  // ---- Salida ----
+  out [label="JSON estructurado\nis_hate · hate_words · is_terruco ·\nsentiment · political · discrim_types ·\ntoxicity_score · needs_review", fillcolor="#39414f", shape=note];
+
+  destinos [label="-> classified-hate (Kafka)\n-> Redis (metricas en vivo)\n-> JSONL (lo lee Spark batch)", fillcolor="#7c5cff"];
+
+  texto -> clean;
+  clean -> t1; clean -> t2; clean -> t3; clean -> t4; clean -> t5; clean -> t6;
+  t1 -> score; t2 -> score; t3 -> score; t4 -> score; t5 -> score;
+  score -> out -> destinos;
+  t6 -> out [style=dashed, label="enriquece"];
+}

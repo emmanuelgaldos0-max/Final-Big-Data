@@ -177,6 +177,42 @@
     .node .nbar.spark i{background:linear-gradient(90deg,var(--amber),var(--green))}
     .node .nidle{font-size:.66rem;color:var(--muted2);margin-top:8px}
 
+    /* ---------- Conmutador de modo (tiempo real / batch) ---------- */
+    .mode-switch{display:inline-flex;gap:4px;background:var(--panel);border:1px solid var(--border);
+      border-radius:13px;padding:5px;margin:30px 0 6px}
+    .mode-switch button{background:transparent;color:var(--muted);border:0;border-radius:9px;
+      padding:10px 22px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;
+      transition:all .18s;letter-spacing:-.01em}
+    .mode-switch button:hover{color:var(--txt)}
+    .mode-switch button.on{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(124,92,255,.32)}
+    .btn-run{background:var(--grad);color:#fff;border:0;border-radius:10px;padding:10px 18px;
+      font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;
+      box-shadow:0 4px 14px rgba(124,92,255,.3);transition:transform .15s,opacity .15s;flex-shrink:0}
+    .btn-run:hover{transform:translateY(-1px)}
+    .btn-run:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+
+    /* ---------- Batch (Spark) panel ---------- */
+    .batch-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+    .batch-head .bp{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:600;color:var(--muted);
+      background:var(--panel2);border:1px solid var(--border);border-radius:99px;padding:6px 12px}
+    .batch-head .bp b{color:var(--txt);font-variant-numeric:tabular-nums}
+    .batch-head .bp .gdot{width:8px;height:8px;border-radius:50%;background:var(--amber)}
+    .batch-head .bp.run .gdot{background:var(--green);animation:pulse 1.6s infinite}
+    .tag-real{background:rgba(63,221,151,.16);color:var(--green);font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:5px;letter-spacing:.03em}
+    .tag-syn{background:rgba(255,180,84,.16);color:var(--amber);font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:5px;letter-spacing:.03em}
+    .bcard .bnum{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+    .bcard .brow{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)}
+    .bcard .brow:last-child{border-bottom:0}
+    .bcard .brow b{color:var(--txt);font-variant-numeric:tabular-nums}
+    .kw{display:inline-block;font-size:.66rem;font-weight:600;color:#dde5ee;background:var(--panel2);
+      border:1px solid var(--border2);border-radius:6px;padding:3px 8px;margin:0 5px 6px 0}
+    .kw b{color:var(--amber);font-variant-numeric:tabular-nums;margin-left:4px}
+    .bmini{width:100%;border-collapse:collapse;font-size:.71rem;margin-top:4px}
+    .bmini th{text-align:left;color:var(--muted2);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--border2);font-size:.64rem;text-transform:uppercase;letter-spacing:.05em}
+    .bmini td{padding:5px 6px;border-bottom:1px solid var(--border);color:var(--txt)}
+    .bmini td .mini-bar{height:6px;border-radius:99px;background:linear-gradient(90deg,var(--amber),var(--red))}
+    .bmini tr:last-child td{border-bottom:0}
+
     footer{max-width:1480px;margin:0 auto;padding:24px 28px;color:var(--muted2);font-size:.72rem;
       display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--border);margin-top:30px}
     footer code{font-family:'JetBrains Mono',monospace;color:var(--muted);background:var(--panel);padding:2px 7px;border-radius:5px}
@@ -203,6 +239,23 @@
 
 <div class="wrap">
 
+  <div class="sec-title">Cluster distribuido — nodos trabajando en vivo</div>
+  <div class="card" style="margin-bottom:2px">
+    <div class="tl-head">
+      <div>
+        <h3>Topología del cluster <span id="cluster-badge" class="node-badge worker" style="margin-left:6px">—</span></h3>
+        <div class="hint" id="cluster-sum">consultando nodos del cluster…</div>
+      </div>
+    </div>
+    <div class="cluster" id="cluster"><div class="empty">detectando nodos…</div></div>
+  </div>
+
+  <div class="mode-switch" id="mode-switch">
+    <button data-view="realtime" class="on">Tiempo real · streaming</button>
+    <button data-view="batch">Análisis batch · Spark</button>
+  </div>
+
+  <div id="view-realtime">
   <div class="sec-title">Indicadores clave</div>
   <div class="kpis">
     <div class="kpi a-blue">
@@ -236,22 +289,11 @@
     </div>
   </div>
 
-  <div class="sec-title">Cluster distribuido — nodos trabajando en vivo</div>
-  <div class="card" style="margin-bottom:2px">
-    <div class="tl-head">
-      <div>
-        <h3>🖧 Topología del cluster <span id="cluster-badge" class="node-badge worker" style="margin-left:6px">—</span></h3>
-        <div class="hint" id="cluster-sum">consultando nodos del cluster…</div>
-      </div>
-    </div>
-    <div class="cluster" id="cluster"><div class="empty">detectando nodos…</div></div>
-  </div>
-
   <div class="sec-title">Análisis en tiempo real — evolución de la detección</div>
   <div class="card">
     <div class="tl-head">
       <div>
-        <h3>🛰️ Detección por tipo a lo largo del tiempo</h3>
+        <h3>Detección por tipo a lo largo del tiempo</h3>
         <div class="hint">Eventos detectados por segundo. Clic en la leyenda para aislar una serie · pasa el cursor para ver el detalle · variación = mitad reciente vs. mitad anterior de la ventana</div>
       </div>
       <div class="tl-range" id="tl-range">
@@ -268,12 +310,12 @@
   <div class="sec-title">Flujo en tiempo real</div>
   <div class="grid g-2">
     <div class="card">
-      <h3>📈 Throughput del pipeline</h3>
+      <h3>Throughput del pipeline</h3>
       <div class="hint">Mensajes/segundo procesados por Flink · medición real en el servidor (Job #1)</div>
       <div class="chart-wrap"><canvas id="c-thr"></canvas></div>
     </div>
     <div class="card">
-      <h3>🧭 Distribución del contenido</h3>
+      <h3>Distribución del contenido</h3>
       <div class="hint">Proporción odio / terruqueo / normal sobre el total</div>
       <div class="chart-wrap"><canvas id="c-dist"></canvas></div>
     </div>
@@ -282,17 +324,17 @@
   <div class="sec-title">Análisis</div>
   <div class="grid g-3">
     <div class="card">
-      <h3>🔥 Tipos de discurso — ventana 60s</h3>
+      <h3>Tipos de discurso — ventana 60s</h3>
       <div class="hint">Ventana deslizante Flink (Job #2)</div>
       <div class="chart-wrap chart-sm"><canvas id="c-window"></canvas></div>
     </div>
     <div class="card">
-      <h3>🏛️ Temas políticos detectados</h3>
+      <h3>Temas políticos detectados</h3>
       <div class="hint">Clasificador de temas Flink (Job #5) · excluye contenido no político</div>
       <div class="chart-wrap chart-sm"><canvas id="c-topics"></canvas></div>
     </div>
     <div class="card">
-      <h3>🛰️ Fuentes de datos reales</h3>
+      <h3>Fuentes de datos reales</h3>
       <div class="hint">Volumen por origen (datasets/redes reales)</div>
       <div id="src-list" style="margin-top:6px"><div class="empty">esperando datos…</div></div>
     </div>
@@ -300,10 +342,31 @@
 
   <div class="sec-title">Monitor de contenido tóxico</div>
   <div class="card">
-    <h3>🚨 Feed en vivo — publicaciones marcadas</h3>
+    <h3>Feed en vivo — publicaciones marcadas</h3>
     <div class="hint">Últimos eventos clasificados como odio o terruqueo, con su procedencia real</div>
     <div class="feed" id="feed"><div class="empty">esperando eventos…</div></div>
   </div>
+
+  </div><!-- /view-realtime -->
+
+  <div id="view-batch" style="display:none">
+  <div class="sec-title">Análisis batch (Spark) — sobre todo el corpus acumulado</div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="tl-head">
+      <div>
+        <h3>Capa batch · 5 jobs Spark distribuidos</h3>
+        <div class="hint">A diferencia del streaming (por evento), estos jobs analizan TODO el histórico clasificado y se re-ejecutan periódicamente. Leen el topic <code style="font-size:.9em">classified-hate</code> y escriben reportes JSON.</div>
+      </div>
+      <button id="batch-run" class="btn-run">Generar ahora</button>
+    </div>
+    <div class="batch-head" id="batch-head">
+      <span class="bp"><span class="gdot"></span><span>esperando primer batch…</span></span>
+    </div>
+  </div>
+  <div class="grid g-3" id="batch-grid">
+    <div class="card"><div class="empty">la capa batch aún no ha generado reportes…</div></div>
+  </div>
+  </div><!-- /view-batch -->
 
 </div>
 
@@ -515,6 +578,74 @@ async function updateCluster(){
   }catch(e){}
 }
 
+// ---- capa batch (Spark) ----
+function srcTag(s){return s==='real'?'<span class="tag-real">REAL</span>':(s==='synthetic'?'<span class="tag-syn">DEMO</span>':'');}
+function agoStr(iso){if(!iso)return '—';const d=(Date.now()-new Date(iso).getTime())/1000;
+  if(d<0)return 'ahora';if(d<60)return 'hace '+Math.round(d)+'s';if(d<3600)return 'hace '+Math.round(d/60)+' min';return 'hace '+Math.round(d/3600)+' h';}
+
+async function updateBatch(){
+  try{
+    const d=await jget('/api/batch');
+    const st=d.status||{}, R=d.reports||{};
+    // ---- cabecera de estado ----
+    const running=!!st.running;
+    const ds=(R.historical&&R.historical.data_source)||(R.tfidf&&R.tfidf.data_source)||'';
+    document.getElementById('batch-head').innerHTML=
+      `<span class="bp ${running?'run':''}"><span class="gdot"></span><span>${running?'ejecutando batch…':'en reposo'}</span></span>`+
+      `<span class="bp">Último: <b>${agoStr(st.last_run_finished)}</b></span>`+
+      (st.interval_min?`<span class="bp">Cada <b>${st.interval_min}</b> min</span>`:'')+
+      (st.duration_s!=null?`<span class="bp">Duró <b>${st.duration_s}</b>s</span>`:'')+
+      `<span class="bp"><b>${d.reports_ran||0}/5</b> reportes</span>`+
+      (ds?`<span class="bp">Datos ${srcTag(ds)}</span>`:'');
+
+    // el boton refleja el estado real: deshabilitado mientras corre una pasada
+    const rb=document.getElementById('batch-run');
+    if(rb && rb.dataset.lock!=='1'){rb.disabled=running;rb.textContent=running?'Ejecutando…':'Generar ahora';}
+
+    const cards=[];
+    // 1) Histórico
+    if(R.historical){const h=R.historical;
+      cards.push(`<div class="card bcard"><h3>Análisis histórico ${srcTag(h.data_source)}</h3>
+        <div class="hint">Volumen y toxicidad sobre el corpus completo</div>
+        <div class="brow"><span>Registros analizados</span><b>${fmt(h.total_records)}</b></div>
+        <div class="brow"><span>Discurso de odio</span><b>${fmt(h.hate_total)}</b></div>
+        <div class="brow"><span>Terruqueo</span><b>${fmt(h.terruco_total)}</b></div>
+        <div class="brow"><span>Toxicidad media</span><b>${h.avg_toxicity}</b></div></div>`);}
+    // 2) TF-IDF keywords
+    if(R.tfidf){const t=R.tfidf;
+      const kws=(t.keywords||[]).map(k=>`<span class="kw">${(k.word||'').replace(/</g,'&lt;')}<b>${fmt(k.count)}</b></span>`).join('')||'<span class="hint">sin términos</span>';
+      cards.push(`<div class="card bcard"><h3>Keywords del odio (TF-IDF) ${srcTag(t.data_source)}</h3>
+        <div class="hint">Términos más característicos · ${fmt(t.hate_docs)} docs tóxicos</div>
+        <div style="margin-top:8px">${kws}</div></div>`);}
+    // 3) Grafo de co-ocurrencia
+    if(R.graph){const g=R.graph;
+      const rows=(g.top_edges||[]).map(e=>`<tr><td>${e.word1} — ${e.word2}</td><td style="text-align:right"><b>${fmt(e.count)}</b></td></tr>`).join('');
+      cards.push(`<div class="card bcard"><h3>Grafo de co-ocurrencia ${srcTag(g.data_source)}</h3>
+        <div class="hint">${fmt(g.n_nodes)} nodos · ${fmt(g.n_edges)} aristas · pares que más aparecen juntos</div>
+        <table class="bmini"><tr><th>par de términos</th><th style="text-align:right">veces</th></tr>${rows||'<tr><td>sin datos</td><td></td></tr>'}</table></div>`);}
+    // 4) Sentimiento por partido
+    if(R.sentiment){const s=R.sentiment;
+      const mx=Math.max(...(s.parties||[]).map(p=>p.avg_toxicity||0),0.001);
+      const rows=(s.parties||[]).slice(0,6).map(p=>`<tr><td>${p.party}</td>
+        <td><div class="mini-bar" style="width:${Math.round((p.avg_toxicity||0)/mx*100)}%"></div></td>
+        <td style="text-align:right"><b>${p.avg_toxicity}</b></td></tr>`).join('');
+      cards.push(`<div class="card bcard"><h3>Toxicidad por partido ${srcTag(s.data_source)}</h3>
+        <div class="hint">${fmt(s.total_mentions)} menciones · toxicidad media por candidato/partido</div>
+        <table class="bmini"><tr><th>partido</th><th>nivel</th><th style="text-align:right">tox.</th></tr>${rows||'<tr><td>sin menciones</td><td></td><td></td></tr>'}</table></div>`);}
+    // 5) Usuarios de alto riesgo
+    if(R.users){const u=R.users;
+      const rows=(u.top_risky||[]).slice(0,8).map(x=>`<tr><td>${(x.author||'').replace(/</g,'&lt;')}</td>
+        <td style="text-align:right">${fmt(x.hate_posts)}/${fmt(x.total_posts)}</td>
+        <td style="text-align:right"><b>${x.risk_score}</b></td></tr>`).join('');
+      cards.push(`<div class="card bcard"><h3>Usuarios de alto riesgo ${srcTag(u.data_source)}</h3>
+        <div class="hint">${fmt(u.total_users)} autores analizados · reincidentes de contenido tóxico</div>
+        <table class="bmini"><tr><th>autor</th><th style="text-align:right">odio/posts</th><th style="text-align:right">riesgo</th></tr>${rows||'<tr><td>sin usuarios</td><td></td><td></td></tr>'}</table></div>`);}
+
+    const grid=document.getElementById('batch-grid');
+    grid.innerHTML=cards.length?cards.join(''):'<div class="card"><div class="empty">la capa batch aún no ha generado reportes…</div></div>';
+  }catch(e){}
+}
+
 // reloj "actualizado hace Xs"
 let secs=0;setInterval(()=>{secs++;const e=document.getElementById('hdr-upd');if(e&&e.textContent.includes('hace'))e.textContent='hace '+secs+'s';},1000);
 function tick(fn){return async()=>{await fn();if(fn===updateMetrics)secs=0;}}
@@ -527,7 +658,34 @@ document.getElementById('tl-range').addEventListener('click',e=>{
   updateTimeline();
 });
 
-updateMetrics();updateTimeline();updateTopics();updateSources();updateFeed();checkAlerts();updateCluster();
+// conmutador de modo: tiempo real <-> batch
+const viewRT=document.getElementById('view-realtime'), viewB=document.getElementById('view-batch');
+document.getElementById('mode-switch').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  const v=b.dataset.view;
+  document.querySelectorAll('#mode-switch button').forEach(x=>x.classList.toggle('on',x===b));
+  viewRT.style.display = v==='realtime' ? '' : 'none';
+  viewB.style.display  = v==='batch'    ? '' : 'none';
+  if(v==='batch'){ updateBatch(); }
+  else{ [cThr,cDist,cWin,cTop,cTimeline].forEach(c=>{try{c.resize();}catch(_){}}); }
+});
+
+// boton "Generar ahora": dispara una pasada batch on-demand
+const runBtn=document.getElementById('batch-run');
+if(runBtn) runBtn.addEventListener('click',async()=>{
+  runBtn.dataset.lock='1'; runBtn.disabled=true; runBtn.textContent='Iniciando…';
+  try{
+    const r=await fetch('/api/batch/run',{method:'POST'});
+    const d=await r.json();
+    runBtn.textContent = d.started ? 'Ejecutando…' : (d.reason==='running' ? 'Ya ejecutando…' : 'No disponible');
+  }catch(e){ runBtn.textContent='Error'; }
+  // tras unos segundos el status ya refleja running=true; soltamos el lock y dejamos
+  // que updateBatch mantenga el boton en sincronia con el estado real.
+  setTimeout(()=>{ runBtn.dataset.lock='0'; updateBatch(); }, 4000);
+});
+
+updateMetrics();updateTimeline();updateTopics();updateSources();updateFeed();checkAlerts();updateCluster();updateBatch();
+setInterval(updateBatch,12000);
 setInterval(updateCluster,5000);
 setInterval(tick(updateMetrics),2500);
 setInterval(updateTimeline,2000);

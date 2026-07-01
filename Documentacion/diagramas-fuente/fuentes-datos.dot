@@ -1,0 +1,51 @@
+digraph fuentes {
+  rankdir=LR;
+  bgcolor="#0f1117";
+  fontname="Helvetica";
+  labelloc="t";
+  fontcolor="#e6edf3";
+  fontsize=22;
+  label="De donde salen los datos — corpus REAL multi-origen (16,639 textos)";
+  node [fontname="Helvetica", shape=box, style="filled,rounded", fontcolor="white", fontsize=12, penwidth=0];
+  edge [color="#8b94a7", fontname="Helvetica", fontsize=10, fontcolor="#b9c2d0", penwidth=1.6, arrowsize=0.8];
+
+  // ---- Origenes bulk: Hugging Face (parquet via CDN) ----
+  subgraph cluster_hf {
+    label="HUGGING FACE  ·  datasets publicos (descarga PARQUET por CDN)";
+    fontcolor="#ffb454"; color="#5a4326"; style="rounded"; fontsize=13;
+    hf1 [label="pyupeu/social-media-\nperuvian-sentiment\n~9.3k redes peruanas", fillcolor="#d98324"];
+    hf2 [label="paolorivas/noticias_peru\n~2.0k noticias Peru\n(titular + resumen)", fillcolor="#d98324"];
+    hf3 [label="Paul/hatecheck-spanish\n~3.7k casos de odio (ES)", fillcolor="#d98324"];
+    hf4 [label="afcarvallo/spanish-ner-\nhate-bio-filtered\n~2.1k odio anotado (ES)", fillcolor="#d98324"];
+  }
+
+  // ---- Origenes en vivo ----
+  subgraph cluster_live {
+    label="EN VIVO  ·  APIs publicas (sin credenciales)";
+    fontcolor="#3fdd97"; color="#234f3a"; style="rounded"; fontsize=13;
+    rd [label="Reddit  r/peru ·\nr/PeruPolitica\n(Pullpush, politica real)", fillcolor="#2f9e6f", fontcolor="white"];
+    mt [label="Mastodon · Twitch\nhashtags peruanos / chat", fillcolor="#2f9e6f", fontcolor="white"];
+  }
+
+  // ---- Consolidacion ----
+  fetch [label="fetch_real_datasets.py\n· filtro de español (heuristica)\n· dedup por hash\n· normaliza al esquema comun\n  {id,text,source,origin,label}", fillcolor="#5b6479", shape=note];
+  corpus [label="data/corpus_real.jsonl\n16,639 textos REALES\nunicos · multi-origen", fillcolor="#39414f", shape=note];
+
+  // ---- Productor + topics Kafka ----
+  prod [label="PRODUCTOR\nreplay alto volumen\n~200 msg/s (variable)\npost_id unico + ts fresco", fillcolor="#5b6479"];
+
+  subgraph cluster_kafka {
+    label="APACHE KAFKA  ·  el campo 'source' decide el topic";
+    fontcolor="#ff5d8f"; color="#5a2a40"; style="rounded"; fontsize=13;
+    ktw [label="raw-tweets\n(twitter · mastodon)", fillcolor="#e84393"];
+    kco [label="raw-comments\n(reddit · news · otros)", fillcolor="#e84393"];
+  }
+
+  // ---- Flujo ----
+  hf1 -> fetch; hf2 -> fetch; hf3 -> fetch; hf4 -> fetch;
+  rd -> fetch [label="bulk"]; mt -> fetch [style=dashed, label="stream"];
+  fetch -> corpus;
+  corpus -> prod [label="lee y recicla"];
+  prod -> ktw [label="source in\n{twitter,mastodon}"];
+  prod -> kco [label="source in\n{reddit,news}"];
+}
