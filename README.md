@@ -7,7 +7,7 @@ pipeline** que la versión de máquinas físicas —
 ```
 Kafka → Flink (5 jobs streaming) → Spark (5 jobs batch) → Redis → Dashboard
 ```
-
+rec
 — pero desplegado sobre **3 instancias EC2** (1 master + 2 workers) en lugar de PCs físicas.
 El enunciado permite **AWS o varias computadoras como cluster**; esta carpeta cubre la opción AWS.
 
